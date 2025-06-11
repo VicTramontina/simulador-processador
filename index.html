@@ -32,11 +32,12 @@
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
+            align-items: center;
         }
 
-        .controls textarea {
-            width: 300px;
-            height: 80px;
+        .controls input[type="file"] {
+            padding: 5px;
+            cursor: pointer;
         }
 
         .controls button {
@@ -88,6 +89,8 @@
             padding: 10px;
             border-radius: 4px;
             overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
 
         .memory-view {
@@ -100,22 +103,46 @@
             padding: 5px;
             margin-top: 5px;
         }
+
+        ol {
+            padding-left: 20px;
+            margin: 0;
+        }
+
+        li {
+            padding: 2px 4px;
+        }
+
+        li.current {
+            background-color: #ffeb3b;
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <h1>Simulador de Processador Virtual</h1>
     <div class="controls">
-        <textarea id="program" placeholder="Insira o programa em hex, ex: 01 00 06 00 02 00 00"></textarea>
-        <button id="loadBtn">Carregar Programa</button>
+        <input type="file" id="fileInput" accept=".txt,asm,md"/>
         <button id="stepBtn">Passo-a-passo</button>
         <button id="runBtn">Executar</button>
         <button id="resetBtn">Resetar</button>
     </div>
     <div class="panels">
         <div class="panel">
+            <h2>Programa Carregado (Hex)</h2>
+            <pre id="hexDisplay"></pre>
+        </div>
+        <div class="panel">
+            <h2>Programa Carregado (Mnemonics)</h2>
+            <pre id="mnemonicDisplay"></pre>
+        </div>
+        <div class="panel">
+            <h2>Programa Linha a Linha</h2>
+            <ol id="programList"></ol>
+        </div>
+        <div class="panel">
             <h2>Registradores</h2>
-            <table id="registersTable">
+            <table>
                 <thead>
                 <tr>
                     <th>PC</th>
@@ -138,7 +165,7 @@
                 </tbody>
             </table>
             <h3>Flags</h3>
-            <table id="flagsTable">
+            <table>
                 <thead>
                 <tr>
                     <th>Z</th>
@@ -156,14 +183,14 @@
         <div class="panel">
             <h2>Memória</h2>
             <div class="memory-view">
-                <table id="memoryTable">
+                <table>
                     <thead>
                     <tr>
                         <th>Endereço</th>
                         <th>Valor</th>
                     </tr>
                     </thead>
-                    <tbody></tbody>
+                    <tbody id="memoryBody"></tbody>
                 </table>
             </div>
         </div>
@@ -177,6 +204,106 @@
     </div>
 </div>
 <script>
+    const MNEMONIC_MAP = {
+        'NADA': 0x00, 'CAR_IMD': 0x01, 'COPIA': 0x02, 'LE_MEM': 0x03, 'ES_MEM': 0x04,
+        'SOMA': 0x05, 'SUBTRAI': 0x06, 'MULTIPLICA': 0x07, 'DIVIDE': 0x08, 'E_BIT': 0x09,
+        'OU_BIT': 0x0A, 'NAO_BIT': 0x0B, 'SALTA': 0x0C, 'SALTA_Z': 0x0D, 'SALTA_NZ': 0x0E,
+        'ENTRADA': 0x0F, 'SAIDA': 0x10, 'INC': 0x11, 'DEC': 0x12, 'MAIOR': 0x13,
+        'ZERA': 0x14, 'LE_INDIRETO': 0x15, 'ES_INDIRETO': 0x16
+    };
+    const REGISTER_MAP = {'R0': 0, 'R1': 1, 'R2': 2, 'R3': 3};
+    const INV_MAP = Object.entries(MNEMONIC_MAP).reduce((a, [k, v]) => (a[v] = k, a), {});
+    let tokens = [], instructions = [], cpu = null;
+
+    document.getElementById('fileInput').addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+            const text = ev.target.result;
+            tokens = text.split(/\s+/).filter(t => t);
+            loadProgram();
+        };
+        reader.readAsText(file);
+    });
+
+    function loadProgram() {
+        const labelMap = {};
+        const operandCount = {
+            0: 0,
+            1: 2,
+            2: 2,
+            3: 2,
+            4: 2,
+            5: 2,
+            6: 2,
+            7: 2,
+            8: 2,
+            9: 2,
+            10: 2,
+            11: 1,
+            12: 1,
+            13: 3,
+            14: 1,
+            15: 1,
+            16: 2
+        };
+        let pcCount = 0;
+        for (let i = 0; i < tokens.length; i++) {
+            const tok = tokens[i].toUpperCase();
+            if (tok.endsWith(':')) {
+                labelMap[tok.slice(0, -1)] = pcCount;
+            } else if (MNEMONIC_MAP[tok] != null) {
+                const op = MNEMONIC_MAP[tok], cnt = operandCount[op] || 0;
+                pcCount += 1 + cnt;
+                i += cnt;
+            }
+        }
+        const rom = [];
+        for (let i = 0; i < tokens.length; i++) {
+            const tok = tokens[i].toUpperCase();
+            if (tok.endsWith(':')) continue;
+            if (MNEMONIC_MAP[tok] != null) {
+                const op = MNEMONIC_MAP[tok];
+                rom.push(op);
+                const cnt = operandCount[op] || 0;
+                for (let j = 1; j <= cnt; j++) {
+                    const opd = tokens[i + j].toUpperCase();
+                    if (REGISTER_MAP[opd] != null) rom.push(REGISTER_MAP[opd]);
+                    else if (!isNaN(parseInt(opd))) rom.push(parseInt(opd) & 0xFF);
+                    else if (labelMap[opd] != null) rom.push(labelMap[opd]);
+                    else {
+                        console.error('Operando inválido:', opd);
+                        rom.push(0);
+                    }
+                }
+                i += cnt;
+            }
+        }
+        instructions = [];
+        let idx = 0;
+        while (idx < rom.length) {
+            const op = rom[idx], cnt = operandCount[op] || 0;
+            const bytes = rom.slice(idx, idx + 1 + cnt);
+            const text = INV_MAP[op] + ' ' + bytes.slice(1).join(' ');
+            instructions.push({startPC: idx, bytes, text});
+            idx += 1 + cnt;
+        }
+        document.getElementById('hexDisplay').textContent = rom.map(b => b.toString(16).padStart(2, '0')).join(' ').toUpperCase();
+        document.getElementById('mnemonicDisplay').textContent = tokens.join(' ');
+        const list = document.getElementById('programList');
+        list.innerHTML = '';
+        instructions.forEach(instr => {
+            const li = document.createElement('li');
+            li.textContent = instr.text;
+            li.dataset.startpc = instr.startPC;
+            list.appendChild(li);
+        });
+        const inputText = document.getElementById('inputInput').value;
+        cpu = new CPU(rom, inputText);
+        updateUI();
+    }
+
     class CPU {
         constructor(rom, input = '') {
             this.rom = rom;
@@ -189,19 +316,19 @@
             this.inputPtr = 0;
             this.output = '';
             this.halted = false;
+            this.lastPC = null;
         }
 
-        reset(rom = this.rom, input = this.input) {
-            this.rom = rom;
+        reset() {
             this.memory.fill(0);
             this.registers = [0, 0, 0, 0];
             this.pc = 0;
             this.sp = 0;
             this.flags = {Z: 0, C: 0};
-            this.input = input;
             this.inputPtr = 0;
             this.output = '';
             this.halted = false;
+            this.lastPC = null;
         }
 
         fetch() {
@@ -210,123 +337,143 @@
 
         step() {
             if (this.halted || this.pc < 0 || this.pc >= this.rom.length) return false;
+            this.lastPC = this.pc;
             const op = this.fetch();
             switch (op) {
-                case 0x00: // NADA
+                case 0x00:
                     this.halted = true;
                     break;
-                case 0x01: // CAR_IMD
-                    var r = this.fetch(), imm = this.fetch();
+                case 0x01: {
+                    const r = this.fetch(), imm = this.fetch();
                     this.registers[r] = imm;
+                }
                     break;
-                case 0x02: // COPIA
-                    var rd = this.fetch(), rs = this.fetch();
+                case 0x02: {
+                    const rd = this.fetch(), rs = this.fetch();
                     this.registers[rd] = this.registers[rs];
+                }
                     break;
-                case 0x03: // LE_MEM
-                    var rd = this.fetch(), addr = this.fetch();
+                case 0x03: {
+                    const rd = this.fetch(), addr = this.fetch();
                     this.registers[rd] = this.memory[addr];
+                }
                     break;
-                case 0x04: // ES_MEM
-                    var rs = this.fetch(), addr = this.fetch();
+                case 0x04: {
+                    const rs = this.fetch(), addr = this.fetch();
                     this.memory[addr] = this.registers[rs];
+                }
                     break;
-                case 0x05: // SOMA
-                    var rd = this.fetch(), rs = this.fetch();
-                    var res = this.registers[rd] + this.registers[rs];
+                case 0x05: {
+                    const rd = this.fetch(), rs = this.fetch();
+                    const res = this.registers[rd] + this.registers[rs];
                     this.flags.C = res > 255 ? 1 : 0;
-                    this.registers[rd] = (res & 0xFF);
+                    this.registers[rd] = res & 0xFF;
                     this.flags.Z = this.registers[rd] === 0 ? 1 : 0;
+                }
                     break;
-                case 0x06: // SUBTRAI
-                    var rd = this.fetch(), rs = this.fetch();
-                    var res = this.registers[rd] - this.registers[rs];
+                case 0x06: {
+                    const rd = this.fetch(), rs = this.fetch();
+                    const res = this.registers[rd] - this.registers[rs];
                     this.flags.C = res < 0 ? 1 : 0;
-                    this.registers[rd] = (res & 0xFF);
+                    this.registers[rd] = res & 0xFF;
                     this.flags.Z = this.registers[rd] === 0 ? 1 : 0;
+                }
                     break;
-                case 0x07: // MULTIPLICA
-                    var rd = this.fetch(), rs = this.fetch();
-                    var res = this.registers[rd] * this.registers[rs];
+                case 0x07: {
+                    const rd = this.fetch(), rs = this.fetch();
+                    const res = this.registers[rd] * this.registers[rs];
                     this.flags.C = res > 255 ? 1 : 0;
-                    this.registers[rd] = (res & 0xFF);
+                    this.registers[rd] = res & 0xFF;
                     this.flags.Z = this.registers[rd] === 0 ? 1 : 0;
+                }
                     break;
-                case 0x08: // DIVIDE
-                    var rd = this.fetch(), rs = this.fetch();
-                    this.registers[rd] = rs ? Math.floor(this.registers[rd] / this.registers[rs]) : 0;
+                case 0x08: {
+                    const rd = this.fetch(), rs = this.fetch();
+                    this.registers[rd] = this.registers[rs] ? Math.floor(this.registers[rd] / this.registers[rs]) : 0;
                     this.flags.Z = this.registers[rd] === 0 ? 1 : 0;
+                }
                     break;
-                case 0x09: // E_BIT
-                    var rd = this.fetch(), rs = this.fetch();
-                    this.registers[rd] = this.registers[rd] & this.registers[rs];
+                case 0x09: {
+                    const rd = this.fetch(), rs = this.fetch();
+                    this.registers[rd] &= this.registers[rs];
                     this.flags.Z = this.registers[rd] === 0 ? 1 : 0;
+                }
                     break;
-                case 0x0A: // OU_BIT
-                    var rd = this.fetch(), rs = this.fetch();
-                    this.registers[rd] = this.registers[rd] | this.registers[rs];
+                case 0x0A: {
+                    const rd = this.fetch(), rs = this.fetch();
+                    this.registers[rd] |= this.registers[rs];
                     this.flags.Z = this.registers[rd] === 0 ? 1 : 0;
+                }
                     break;
-                case 0x0B: // NAO_BIT
-                    var rd = this.fetch();
+                case 0x0B: {
+                    const rd = this.fetch();
                     this.registers[rd] = (~this.registers[rd] & 0xFF);
                     this.flags.Z = this.registers[rd] === 0 ? 1 : 0;
+                }
                     break;
-                case 0x0C: // SALTA
+                case 0x0C:
                     this.pc = this.fetch();
                     break;
-                case 0x0D: // SALTA_Z
-                    var cond = this.fetch(), addr = this.fetch();
-                    if (this.registers[cond] === 0) this.pc = addr;
+                case 0x0D: {
+                    const cond = this.fetch(), addr = this.fetch();
+                    if (this.flags.Z === 1) this.pc = addr;
+                }
                     break;
-                case 0x0E: // SALTA_NZ
-                    var cond = this.fetch(), addr = this.fetch();
-                    if (this.registers[cond] !== 0) this.pc = addr;
+                case 0x0E: {
+                    const cond = this.fetch(), addr = this.fetch();
+                    if (this.flags.Z === 0) this.pc = addr;
+                }
                     break;
-                case 0x0F: // ENTRADA
-                    var rd = this.fetch();
-                    if (this.inputPtr < this.input.length) {
-                        this.registers[rd] = this.input.charCodeAt(this.inputPtr++) & 0xFF;
-                    } else this.registers[rd] = 0;
+                case 0x0F: {
+                    const rd = this.fetch();
+                    this.registers[rd] = this.inputPtr < this.input.length ? this.input.charCodeAt(this.inputPtr++) & 0xFF : 0;
+                }
                     break;
-                case 0x10: // SAIDA
-                    var rs = this.fetch();
+                case 0x10: {
+                    const rs = this.fetch();
                     this.output += String.fromCharCode(this.registers[rs]);
+                }
                     break;
-                case 0x11: // INC
-                    var rd = this.fetch();
-                    var res = this.registers[rd] + 1;
-                    this.flags.C = res > 255 ? 1 : 0;
-                    this.registers[rd] = res & 0xFF;
+                case 0x11: {
+                    const rd = this.fetch();
+                    const resInc = this.registers[rd] + 1;
+                    this.flags.C = resInc > 255 ? 1 : 0;
+                    this.registers[rd] = resInc & 0xFF;
                     this.flags.Z = this.registers[rd] === 0 ? 1 : 0;
+                }
                     break;
-                case 0x12: // DEC
-                    var rd = this.fetch();
-                    var res = this.registers[rd] - 1;
-                    this.flags.C = res < 0 ? 1 : 0;
-                    this.registers[rd] = res & 0xFF;
+                case 0x12: {
+                    const rd = this.fetch();
+                    const resDec = this.registers[rd] - 1;
+                    this.flags.C = resDec < 0 ? 1 : 0;
+                    this.registers[rd] = resDec & 0xFF;
                     this.flags.Z = this.registers[rd] === 0 ? 1 : 0;
+                }
                     break;
-                case 0x13: // MAIOR
-                    var rd = this.fetch(), rs1 = this.fetch(), rs2 = this.fetch();
-                    this.registers[rd] = Math.max(this.registers[rs1], this.registers[rs2]);
+                case 0x13: {
+                    const rd = this.fetch(), r1 = this.fetch(), r2 = this.fetch();
+                    this.registers[rd] = Math.max(this.registers[r1], this.registers[r2]);
                     this.flags.Z = this.registers[rd] === 0 ? 1 : 0;
+                }
                     break;
-                case 0x14: // ZERA
-                    var rd = this.fetch();
+                case 0x14: {
+                    const rd = this.fetch();
                     this.registers[rd] = 0;
                     this.flags.Z = 1;
+                }
                     break;
-                case 0x15: // LE_INDIRETO
-                    var rd = this.fetch(), raddr = this.fetch();
+                case 0x15: {
+                    const rd = this.fetch(), raddr = this.fetch();
                     this.registers[rd] = this.memory[this.registers[raddr]];
+                }
                     break;
-                case 0x16: // ES_INDIRETO
-                    var rs = this.fetch(), raddr = this.fetch();
+                case 0x16: {
+                    const rs = this.fetch(), raddr = this.fetch();
                     this.memory[this.registers[raddr]] = this.registers[rs];
+                }
                     break;
                 default:
-                    throw new Error("Opcode inválido: " + op);
+                    throw new Error('Opcode inválido: ' + op);
             }
             return !this.halted;
         }
@@ -338,67 +485,41 @@
         }
     }
 
-    // UI logic
-    let cpu = null;
-    const regsElems = {
-        pc: document.getElementById('pc'), sp: document.getElementById('sp'),
-        r0: document.getElementById('r0'), r1: document.getElementById('r1'),
-        r2: document.getElementById('r2'), r3: document.getElementById('r3')
-    };
-    const flagElems = {Z: document.getElementById('flagZ'), C: document.getElementById('flagC')};
-    const memTableBody = document.querySelector('#memoryTable tbody');
-    const outputElem = document.getElementById('output');
-    document.getElementById('loadBtn').onclick = () => {
-        const hex = document.getElementById('program').value.trim().split(/\s+/);
-        const rom = hex.map(h => parseInt(h, 16) & 0xFF);
-        const input = document.getElementById('inputInput').value;
-        cpu = new CPU(rom, input);
-        updateUI();
-    };
-    document.getElementById('stepBtn').onclick = () => {
+    function updateUI() {
+        if (!cpu) return;
+        document.querySelectorAll('#programList li.current').forEach(li => li.classList.remove('current'));
+        if (cpu.lastPC != null) {
+            const li = document.querySelector(`#programList li[data-startpc="${cpu.lastPC}"]`);
+            if (li) li.classList.add('current');
+        }
+        document.getElementById('pc').textContent = cpu.pc;
+        document.getElementById('sp').textContent = cpu.sp;
+        cpu.registers.forEach((v, i) => document.getElementById('r' + i).textContent = v);
+        document.getElementById('flagZ').textContent = cpu.flags.Z;
+        document.getElementById('flagC').textContent = cpu.flags.C;
+        const mb = document.getElementById('memoryBody');
+        mb.innerHTML = '';
+        cpu.memory.forEach((v, i) => {
+            if (v) mb.insertAdjacentHTML('beforeend', `<tr><td>${i}</td><td>${v}</td></tr>`);
+        });
+        document.getElementById('output').textContent = cpu.output;
+    }
+
+    document.getElementById('stepBtn').addEventListener('click', () => {
         if (cpu) {
             cpu.step();
             updateUI();
         }
-    };
-    document.getElementById('runBtn').onclick = () => {
-        if (cpu) {
-            cpu.run(updateUI);
-        }
-    };
-    document.getElementById('resetBtn').onclick = () => {
+    });
+    document.getElementById('runBtn').addEventListener('click', () => {
+        if (cpu) cpu.run(updateUI);
+    });
+    document.getElementById('resetBtn').addEventListener('click', () => {
         if (cpu) {
             cpu.reset();
             updateUI();
         }
-    };
-
-    function updateUI() {
-        if (!cpu) return;
-        regsElems.pc.textContent = cpu.pc;
-        regsElems.sp.textContent = cpu.sp;
-        regsElems.r0.textContent = cpu.registers[0];
-        regsElems.r1.textContent = cpu.registers[1];
-        regsElems.r2.textContent = cpu.registers[2];
-        regsElems.r3.textContent = cpu.registers[3];
-        flagElems.Z.textContent = cpu.flags.Z;
-        flagElems.C.textContent = cpu.flags.C;
-        // memory
-        memTableBody.innerHTML = '';
-        cpu.memory.forEach((v, i) => {
-            if (v !== 0) {
-                const row = document.createElement('tr');
-                const c1 = document.createElement('td'), c2 = document.createElement('td');
-                c1.textContent = i;
-                c2.textContent = v;
-                row.appendChild(c1);
-                row.appendChild(c2);
-                memTableBody.appendChild(row);
-            }
-        });
-        // output
-        outputElem.textContent = cpu.output;
-    }
+    });
 </script>
 </body>
 </html>
