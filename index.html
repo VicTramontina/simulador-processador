@@ -233,6 +233,10 @@
         reader.readAsText(file);
     });
 
+    document.getElementById('inputInput').addEventListener('input', e => {
+        if (cpu) cpu.input = e.target.value;
+    });
+
     function loadProgram() {
         const labelMap = {};
         const operandCount = {
@@ -531,6 +535,7 @@
     document.getElementById('resetBtn').addEventListener('click', () => {
         if (cpu) {
             cpu.reset();
+            cpu.input = document.getElementById('inputInput').value;
             updateUI();
         }
     });
