@@ -1,6 +1,6 @@
 INICIO:
   ENTRADA R0       ; lê caractere
-  SALTA_NZ FIM    ; se não EOF (char != 0), imprime
+  SALTA_Z ,FIM     ; se EOF (char == 0), termina
   SAIDA R0
   SALTA INICIO
 FIM:
