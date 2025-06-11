@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Processador Virtual</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .controls textarea {
+            width: 300px;
+            height: 80px;
+        }
+
+        .controls button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .controls button:hover {
+            background: #45A049;
+        }
+
+        .panels {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .panel {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .panel h2 {
+            margin-top: 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th, table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        pre {
+            background: #eee;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+
+        .memory-view {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 5px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Simulador de Processador Virtual</h1>
+    <div class="controls">
+        <textarea id="program" placeholder="Insira o programa em hex, ex: 01 00 06 00 02 00 00"></textarea>
+        <button id="loadBtn">Carregar Programa</button>
+        <button id="stepBtn">Passo-a-passo</button>
+        <button id="runBtn">Executar</button>
+        <button id="resetBtn">Resetar</button>
+    </div>
+    <div class="panels">
+        <div class="panel">
+            <h2>Registradores</h2>
+            <table id="registersTable">
+                <thead>
+                <tr>
+                    <th>PC</th>
+                    <th>SP</th>
+                    <th>R0</th>
+                    <th>R1</th>
+                    <th>R2</th>
+                    <th>R3</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td id="pc">0</td>
+                    <td id="sp">0</td>
+                    <td id="r0">0</td>
+                    <td id="r1">0</td>
+                    <td id="r2">0</td>
+                    <td id="r3">0</td>
+                </tr>
+                </tbody>
+            </table>
+            <h3>Flags</h3>
+            <table id="flagsTable">
+                <thead>
+                <tr>
+                    <th>Z</th>
+                    <th>C</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td id="flagZ">0</td>
+                    <td id="flagC">0</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="panel">
+            <h2>Memória</h2>
+            <div class="memory-view">
+                <table id="memoryTable">
+                    <thead>
+                    <tr>
+                        <th>Endereço</th>
+                        <th>Valor</th>
+                    </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="panel">
+            <h2>I/O</h2>
+            <label for="inputInput">Entrada:</label>
+            <input id="inputInput" class="input-field" type="text" placeholder="Texto de entrada"/>
+            <h3>Saída:</h3>
+            <pre id="output"></pre>
+        </div>
+    </div>
+</div>
+<script>
+    class CPU {
+        constructor(rom, input = '') {
+            this.rom = rom;
+            this.memory = new Uint8Array(256);
+            this.registers = [0, 0, 0, 0];
+            this.pc = 0;
+            this.sp = 0;
+            this.flags = {Z: 0, C: 0};
+            this.input = input;
+            this.inputPtr = 0;
+            this.output = '';
+            this.halted = false;
+        }
+
+        reset(rom = this.rom, input = this.input) {
+            this.rom = rom;
+            this.memory.fill(0);
+            this.registers = [0, 0, 0, 0];
+            this.pc = 0;
+            this.sp = 0;
+            this.flags = {Z: 0, C: 0};
+            this.input = input;
+            this.inputPtr = 0;
+            this.output = '';
+            this.halted = false;
+        }
+
+        fetch() {
+            return this.rom[this.pc++];
+        }
+
+        step() {
+            if (this.halted || this.pc < 0 || this.pc >= this.rom.length) return false;
+            const op = this.fetch();
+            switch (op) {
+                case 0x00: // NADA
+                    this.halted = true;
+                    break;
+                case 0x01: // CAR_IMD
+                    var r = this.fetch(), imm = this.fetch();
+                    this.registers[r] = imm;
+                    break;
+                case 0x02: // COPIA
+                    var rd = this.fetch(), rs = this.fetch();
+                    this.registers[rd] = this.registers[rs];
+                    break;
+                case 0x03: // LE_MEM
+                    var rd = this.fetch(), addr = this.fetch();
+                    this.registers[rd] = this.memory[addr];
+                    break;
+                case 0x04: // ES_MEM
+                    var rs = this.fetch(), addr = this.fetch();
+                    this.memory[addr] = this.registers[rs];
+                    break;
+                case 0x05: // SOMA
+                    var rd = this.fetch(), rs = this.fetch();
+                    var res = this.registers[rd] + this.registers[rs];
+                    this.flags.C = res > 255 ? 1 : 0;
+                    this.registers[rd] = (res & 0xFF);
+                    this.flags.Z = this.registers[rd] === 0 ? 1 : 0;
+                    break;
+                case 0x06: // SUBTRAI
+                    var rd = this.fetch(), rs = this.fetch();
+                    var res = this.registers[rd] - this.registers[rs];
+                    this.flags.C = res < 0 ? 1 : 0;
+                    this.registers[rd] = (res & 0xFF);
+                    this.flags.Z = this.registers[rd] === 0 ? 1 : 0;
+                    break;
+                case 0x07: // MULTIPLICA
+                    var rd = this.fetch(), rs = this.fetch();
+                    var res = this.registers[rd] * this.registers[rs];
+                    this.flags.C = res > 255 ? 1 : 0;
+                    this.registers[rd] = (res & 0xFF);
+                    this.flags.Z = this.registers[rd] === 0 ? 1 : 0;
+                    break;
+                case 0x08: // DIVIDE
+                    var rd = this.fetch(), rs = this.fetch();
+                    this.registers[rd] = rs ? Math.floor(this.registers[rd] / this.registers[rs]) : 0;
+                    this.flags.Z = this.registers[rd] === 0 ? 1 : 0;
+                    break;
+                case 0x09: // E_BIT
+                    var rd = this.fetch(), rs = this.fetch();
+                    this.registers[rd] = this.registers[rd] & this.registers[rs];
+                    this.flags.Z = this.registers[rd] === 0 ? 1 : 0;
+                    break;
+                case 0x0A: // OU_BIT
+                    var rd = this.fetch(), rs = this.fetch();
+                    this.registers[rd] = this.registers[rd] | this.registers[rs];
+                    this.flags.Z = this.registers[rd] === 0 ? 1 : 0;
+                    break;
+                case 0x0B: // NAO_BIT
+                    var rd = this.fetch();
+                    this.registers[rd] = (~this.registers[rd] & 0xFF);
+                    this.flags.Z = this.registers[rd] === 0 ? 1 : 0;
+                    break;
+                case 0x0C: // SALTA
+                    this.pc = this.fetch();
+                    break;
+                case 0x0D: // SALTA_Z
+                    var cond = this.fetch(), addr = this.fetch();
+                    if (this.registers[cond] === 0) this.pc = addr;
+                    break;
+                case 0x0E: // SALTA_NZ
+                    var cond = this.fetch(), addr = this.fetch();
+                    if (this.registers[cond] !== 0) this.pc = addr;
+                    break;
+                case 0x0F: // ENTRADA
+                    var rd = this.fetch();
+                    if (this.inputPtr < this.input.length) {
+                        this.registers[rd] = this.input.charCodeAt(this.inputPtr++) & 0xFF;
+                    } else this.registers[rd] = 0;
+                    break;
+                case 0x10: // SAIDA
+                    var rs = this.fetch();
+                    this.output += String.fromCharCode(this.registers[rs]);
+                    break;
+                case 0x11: // INC
+                    var rd = this.fetch();
+                    var res = this.registers[rd] + 1;
+                    this.flags.C = res > 255 ? 1 : 0;
+                    this.registers[rd] = res & 0xFF;
+                    this.flags.Z = this.registers[rd] === 0 ? 1 : 0;
+                    break;
+                case 0x12: // DEC
+                    var rd = this.fetch();
+                    var res = this.registers[rd] - 1;
+                    this.flags.C = res < 0 ? 1 : 0;
+                    this.registers[rd] = res & 0xFF;
+                    this.flags.Z = this.registers[rd] === 0 ? 1 : 0;
+                    break;
+                case 0x13: // MAIOR
+                    var rd = this.fetch(), rs1 = this.fetch(), rs2 = this.fetch();
+                    this.registers[rd] = Math.max(this.registers[rs1], this.registers[rs2]);
+                    this.flags.Z = this.registers[rd] === 0 ? 1 : 0;
+                    break;
+                case 0x14: // ZERA
+                    var rd = this.fetch();
+                    this.registers[rd] = 0;
+                    this.flags.Z = 1;
+                    break;
+                case 0x15: // LE_INDIRETO
+                    var rd = this.fetch(), raddr = this.fetch();
+                    this.registers[rd] = this.memory[this.registers[raddr]];
+                    break;
+                case 0x16: // ES_INDIRETO
+                    var rs = this.fetch(), raddr = this.fetch();
+                    this.memory[this.registers[raddr]] = this.registers[rs];
+                    break;
+                default:
+                    throw new Error("Opcode inválido: " + op);
+            }
+            return !this.halted;
+        }
+
+        run(update) {
+            while (this.step()) {
+            }
+            update();
+        }
+    }
+
+    // UI logic
+    let cpu = null;
+    const regsElems = {
+        pc: document.getElementById('pc'), sp: document.getElementById('sp'),
+        r0: document.getElementById('r0'), r1: document.getElementById('r1'),
+        r2: document.getElementById('r2'), r3: document.getElementById('r3')
+    };
+    const flagElems = {Z: document.getElementById('flagZ'), C: document.getElementById('flagC')};
+    const memTableBody = document.querySelector('#memoryTable tbody');
+    const outputElem = document.getElementById('output');
+    document.getElementById('loadBtn').onclick = () => {
+        const hex = document.getElementById('program').value.trim().split(/\s+/);
+        const rom = hex.map(h => parseInt(h, 16) & 0xFF);
+        const input = document.getElementById('inputInput').value;
+        cpu = new CPU(rom, input);
+        updateUI();
+    };
+    document.getElementById('stepBtn').onclick = () => {
+        if (cpu) {
+            cpu.step();
+            updateUI();
+        }
+    };
+    document.getElementById('runBtn').onclick = () => {
+        if (cpu) {
+            cpu.run(updateUI);
+        }
+    };
+    document.getElementById('resetBtn').onclick = () => {
+        if (cpu) {
+            cpu.reset();
+            updateUI();
+        }
+    };
+
+    function updateUI() {
+        if (!cpu) return;
+        regsElems.pc.textContent = cpu.pc;
+        regsElems.sp.textContent = cpu.sp;
+        regsElems.r0.textContent = cpu.registers[0];
+        regsElems.r1.textContent = cpu.registers[1];
+        regsElems.r2.textContent = cpu.registers[2];
+        regsElems.r3.textContent = cpu.registers[3];
+        flagElems.Z.textContent = cpu.flags.Z;
+        flagElems.C.textContent = cpu.flags.C;
+        // memory
+        memTableBody.innerHTML = '';
+        cpu.memory.forEach((v, i) => {
+            if (v !== 0) {
+                const row = document.createElement('tr');
+                const c1 = document.createElement('td'), c2 = document.createElement('td');
+                c1.textContent = i;
+                c2.textContent = v;
+                row.appendChild(c1);
+                row.appendChild(c2);
+                memTableBody.appendChild(row);
+            }
+        });
+        // output
+        outputElem.textContent = cpu.output;
+    }
+</script>
+</body>
+</html>
