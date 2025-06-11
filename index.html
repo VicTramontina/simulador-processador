@@ -221,7 +221,13 @@
         const reader = new FileReader();
         reader.onload = ev => {
             const text = ev.target.result;
-            tokens = text.split(/\s+/).filter(t => t);
+            tokens = text
+                .split(/\n/)
+                .map(l => l.split(';')[0])
+                .join(' ')
+                .replace(/,/g, ' , ')
+                .split(/\s+/)
+                .filter(t => t);
             loadProgram();
         };
         reader.readAsText(file);
@@ -230,23 +236,29 @@
     function loadProgram() {
         const labelMap = {};
         const operandCount = {
-            0: 0,
-            1: 2,
-            2: 2,
-            3: 2,
-            4: 2,
-            5: 2,
-            6: 2,
-            7: 2,
-            8: 2,
-            9: 2,
-            10: 2,
-            11: 1,
-            12: 1,
-            13: 3,
-            14: 1,
-            15: 1,
-            16: 2
+            0x00: 0,  // NADA
+            0x01: 2,  // CAR_IMD
+            0x02: 2,  // COPIA
+            0x03: 2,  // LE_MEM
+            0x04: 2,  // ES_MEM
+            0x05: 2,  // SOMA
+            0x06: 2,  // SUBTRAI
+            0x07: 2,  // MULTIPLICA
+            0x08: 2,  // DIVIDE
+            0x09: 2,  // E_BIT
+            0x0A: 2,  // OU_BIT
+            0x0B: 1,  // NAO_BIT
+            0x0C: 1,  // SALTA
+            0x0D: 2,  // SALTA_Z
+            0x0E: 2,  // SALTA_NZ
+            0x0F: 1,  // ENTRADA
+            0x10: 1,  // SAIDA
+            0x11: 1,  // INC
+            0x12: 1,  // DEC
+            0x13: 3,  // MAIOR
+            0x14: 1,  // ZERA
+            0x15: 2,  // LE_INDIRETO
+            0x16: 2   // ES_INDIRETO
         };
         let pcCount = 0;
         for (let i = 0; i < tokens.length; i++) {
@@ -268,7 +280,8 @@
                 rom.push(op);
                 const cnt = operandCount[op] || 0;
                 for (let j = 1; j <= cnt; j++) {
-                    const opd = tokens[i + j].toUpperCase();
+                    let opd = tokens[i + j].toUpperCase();
+                    if (opd === ',') opd = '0';
                     if (REGISTER_MAP[opd] != null) rom.push(REGISTER_MAP[opd]);
                     else if (!isNaN(parseInt(opd))) rom.push(parseInt(opd) & 0xFF);
                     else if (labelMap[opd] != null) rom.push(labelMap[opd]);
@@ -427,6 +440,7 @@
                 case 0x0F: {
                     const rd = this.fetch();
                     this.registers[rd] = this.inputPtr < this.input.length ? this.input.charCodeAt(this.inputPtr++) & 0xFF : 0;
+                    this.flags.Z = this.registers[rd] === 0 ? 1 : 0;
                 }
                     break;
                 case 0x10: {
