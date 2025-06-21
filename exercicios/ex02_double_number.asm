@@ -9,4 +9,3 @@ START:
   SOMA R0,R1         ; converte de volta para ASCII
   SAIDA R0           ; imprime dobro
   NADA               ; fim
-

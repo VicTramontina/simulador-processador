@@ -4,3 +4,4 @@ START:
   SAIDA R0         ; imprime o caracter em ASCII
   NADA             ; fim do programa
 
+
