@@ -1,6 +1,8 @@
 # Simulador de Processador Virtual
 
-Este repositório contém um simulador de processador virtual completo, desenvolvido em HTML/CSS/JavaScript. Ele permite carregar programas escritos em um conjunto de instruções customizado, suporta definição de labels e execução passo a passo ou automática, além de exibir registradores, flags, memória e I/O.
+Este repositório contém um simulador de processador virtual completo, desenvolvido em HTML/CSS/JavaScript. Ele permite
+carregar programas escritos em um conjunto de instruções customizado, suporta definição de labels e execução passo a
+passo ou automática, além de exibir registradores, flags, memória e I/O.
 
 ---
 
@@ -15,7 +17,8 @@ Este repositório contém um simulador de processador virtual completo, desenvol
 
 ## Visão Geral
 
-O **Simulador de Processador Virtual** simula um processador de 8 bits com registradores, flags, memória e operações de I/O. O usuário pode:
+O **Simulador de Processador Virtual** simula um processador de 8 bits com registradores, flags, memória e operações de
+I/O. O usuário pode:
 
 - Definir labels para saltos relativos.
 - Carregar um arquivo de programa (.txt, .asm ou .md) contendo instruções e labels.
@@ -29,31 +32,35 @@ O **Simulador de Processador Virtual** simula um processador de 8 bits com regis
 
 ## Instruções Suportadas
 
-| Mnemonic     | Opcode | Operandos       | Descrição                                |
-| ------------ | ------ | --------------- | ---------------------------------------- |
-| NADA         | 0x00   | —               | Halta o processador                      |
-| CAR\_IMD     | 0x01   | REG, Imm(0–255) | Carrega valor imediato em registrador    |
-| COPIA        | 0x02   | Dest, Orig      | Copia registrador Orig para Dest         |
-| LE\_MEM      | 0x03   | Dest, Addr      | Lê da memória no endereço Addr para Dest |
-| ES\_MEM      | 0x04   | Orig, Addr      | Escreve Orig na memória no endereço Addr |
-| SOMA         | 0x05   | Dest, Orig      | Soma Orig em Dest (atualiza Z e C)       |
-| SUBTRAI      | 0x06   | Dest, Orig      | Subtrai Orig de Dest (atualiza Z e C)    |
-| MULTIPLICA   | 0x07   | Dest, Orig      | Multiplica Dest por Orig (Z e C)         |
-| DIVIDE       | 0x08   | Dest, Orig      | Divide Dest por Orig (Z)                 |
-| E\_BIT       | 0x09   | Dest, Orig      | AND bitwise (Z)                          |
-| OU\_BIT      | 0x0A   | Dest, Orig      | OR bitwise (Z)                           |
-| NAO\_BIT     | 0x0B   | Dest            | NOT bitwise em Dest (Z)                  |
-| SALTA        | 0x0C   | Addr            | Salto incondicional                      |
-| SALTA\_Z     | 0x0D   | —, Addr         | Salta se Z = 1                           |
-| SALTA\_NZ    | 0x0E   | —, Addr         | Salta se Z = 0                           |
-| ENTRADA      | 0x0F   | Dest            | Lê um byte ASCII da entrada para Dest    |
-| SAIDA        | 0x10   | Orig            | Escreve byte de Orig no output ASCII     |
-| INC          | 0x11   | Dest            | Incrementa Dest (Z e C)                  |
-| DEC          | 0x12   | Dest            | Decrementa Dest (Z e C)                  |
-| MAIOR        | 0x13   | Dest, R1, R2    | Dest := max(R1, R2) (Z se zero)          |
-| ZERA         | 0x14   | Dest            | Dest := 0 (Z=1)                          |
-| LE\_INDIRETO | 0x15   | Dest, Raddr     | Dest := Mem[ Raddr ]                     |
-| ES\_INDIRETO | 0x16   | Orig, Raddr     | Mem[ Raddr ] := Orig                     |
+| Mnemonic     | Opcode | Operandos       | Descrição                                                    |
+|--------------|--------|-----------------|--------------------------------------------------------------|
+| NADA         | 0x00   | —               | Halta o processador                                          |
+| CAR\_IMD     | 0x01   | REG, Imm(0–255) | Carrega valor imediato em registrador                        |
+| COPIA        | 0x02   | Dest, Orig      | Copia registrador Orig para Dest                             |
+| LE\_MEM      | 0x03   | Dest, Addr      | Lê da memória no endereço Addr para Dest                     |
+| ES\_MEM      | 0x04   | Orig, Addr      | Escreve Orig na memória no endereço Addr                     |
+| SOMA         | 0x05   | Dest, Orig      | Soma Orig em Dest (atualiza Z e C)                           |
+| SUBTRAI      | 0x06   | Dest, Orig      | Subtrai Orig de Dest (atualiza Z e C)                        |
+| MULTIPLICA   | 0x07   | Dest, Orig      | Multiplica Dest por Orig (Z e C)                             |
+| DIVIDE       | 0x08   | Dest, Orig      | Divide Dest por Orig (Z)                                     |
+| E\_BIT       | 0x09   | Dest, Orig      | AND bitwise (Z)                                              |
+| OU\_BIT      | 0x0A   | Dest, Orig      | OR bitwise (Z)                                               |
+| NAO\_BIT     | 0x0B   | Dest            | NOT bitwise em Dest (Z)                                      |
+| SALTA        | 0x0C   | Addr            | Salto incondicional                                          |
+| SALTA\_Z     | 0x0D   | —, Addr         | Salta se Z = 1                                               |
+| SALTA\_NZ    | 0x0E   | —, Addr         | Salta se Z = 0                                               |
+| ENTRADA      | 0x0F   | Dest            | Lê um byte ASCII da entrada para Dest                        |
+| SAIDA        | 0x10   | Orig            | Escreve byte de Orig no output ASCII                         |
+| INC          | 0x11   | Dest            | Incrementa Dest (Z e C)                                      |
+| DEC          | 0x12   | Dest            | Decrementa Dest (Z e C)                                      |
+| MAIOR        | 0x13   | Dest, R1, R2    | Dest := max(R1, R2) (Z se zero)                              |
+| ZERA         | 0x14   | Dest            | Dest := 0 (Z=1)                                              |
+| LE\_INDIRETO | 0x15   | Dest, Raddr     | Dest := Mem[ Raddr ]                                         |
+| ES\_INDIRETO | 0x16   | Orig, Raddr     | Mem[ Raddr ] := Orig                                         |
+| EMPILHA      | 0x17   | Orig            | Empilha valor de Orig na pilha (decrementa SP e grava valor) |
+| DESEMPILHA   | 0x18   | Dest            | Desempilha valor da pilha para Dest (incrementa SP)          |
+| CHAMA        | 0x19   | Addr            | Empilha PC na pilha e salta para Addr (chamada de subrotina) |
+| RETORNA      | 0x1A   | —               | Desempilha endereço de retorno para PC                       |
 
 ---
 
