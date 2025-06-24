@@ -133,7 +133,8 @@
         'SOMA': 0x05, 'SUBTRAI': 0x06, 'MULTIPLICA': 0x07, 'DIVIDE': 0x08, 'E_BIT': 0x09,
         'OU_BIT': 0x0A, 'NAO_BIT': 0x0B, 'SALTA': 0x0C, 'SALTA_Z': 0x0D, 'SALTA_NZ': 0x0E,
         'ENTRADA': 0x0F, 'SAIDA': 0x10, 'INC': 0x11, 'DEC': 0x12, 'MAIOR': 0x13, 'ZERA': 0x14,
-        'LE_INDIRETO': 0x15, 'ES_INDIRETO': 0x16
+        'LE_INDIRETO': 0x15, 'ES_INDIRETO': 0x16,
+        'EMPILHA': 0x17, 'DESEMPILHA': 0x18, 'CHAMA': 0x19, 'RETORNA': 0x1A
     };
 
     let memory = new Uint8Array(256);
@@ -175,7 +176,7 @@
         lines.forEach(line => {
             const code = line.split(';')[0].trim();
             if (!code) return;
-            const parts = code.split(/\s+/);
+            const parts = code.replace(/,/g, ' ').split(/\s+/);
             if (parts[0].endsWith(':')) {
                 labels[parts[0].slice(0, -1)] = addr;
             } else {
@@ -187,7 +188,7 @@
         lines.forEach(line => {
             const code = line.split(';')[0].trim();
             if (!code) return;
-            const parts = code.split(/\s+/);
+            const parts = code.replace(/,/g, ' ').split(/\s+/);
             if (parts[0].endsWith(':')) return;
             const op = parts[0].toUpperCase();
             const opc = OPCODES[op];
@@ -364,7 +365,10 @@
                 break;
             case 0x10: // SAIDA
                 o1 = memory[regs.pc++];
+                console.log("Saída de caractere:", o1);
+                console.log("Registrador:", regs[regsMap[o1]]);
                 const char = String.fromCharCode(regs[regsMap[o1]]);
+                console.log("char", char);
                 appendToTerminal(`Saída: ${char}`, 'output');
                 break;
             case 0x11: // INC
@@ -411,8 +415,31 @@
                 o1 = memory[regs.pc++];
                 o2 = memory[regs.pc++];
                 memory[regs[regsMap[o2]]] = regs[regsMap[o1]];
-
                 appendToTerminal(`Escrita indireta: ${getInstructionText(op, [o1, o2])}`, 'instruction');
+                break;
+            case 0x17: // EMPILHA
+                d = memory[regs.pc++];
+                regs.sp--;
+                memory[regs.sp] = regs[regsMap[d]];
+                appendToTerminal(`Empilhando: ${getInstructionText(op, [d])}`, 'instruction');
+                break;
+            case 0x18: // DESEMPILHA
+                d = memory[regs.pc++];
+                regs[regsMap[d]] = memory[regs.sp];
+                regs.sp++;
+                appendToTerminal(`Desempilhando: ${getInstructionText(op, [d])}`, 'instruction');
+                break;
+            case 0x19: // CHAMA
+                o1 = memory[regs.pc++];
+                regs.sp--;
+                memory[regs.sp] = regs.pc;
+                regs.pc = o1;
+                appendToTerminal(`Chamada de subrotina: ${getInstructionText(op, [o1])}`, 'instruction');
+                break;
+            case 0x1A: // RETORNA
+                regs.pc = memory[regs.sp];
+                regs.sp++;
+                appendToTerminal(`Retorno de subrotina`, 'instruction');
                 break;
             default:
                 running = false;
