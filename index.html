@@ -95,7 +95,7 @@
 <div id="terminal"></div>
 
 <div id="io">
-    <input id="inputField" type="text" placeholder="Entrada" disabled/>
+    <input id="inputField" type="text" placeholder="Entrada" maxlength="1" disabled/>
     <button id="inputBtn" disabled>Enviar</button>
 </div>
 <div id="registers">
@@ -145,7 +145,7 @@
     let rom = new Uint8Array(256);    // ROM
     let regs = {r0: 0, r1: 0, r2: 0, r3: 0, pc: 0, sp: 255};
     let flags = {Z: 0, C: 0};
-    let inputQueue = [];
+    let currentInput = null;
     let running = false;
 
     const regsMap = ['r0', 'r1', 'r2', 'r3'];
@@ -360,7 +360,7 @@
                 break;
             case 0x0F: // ENTRADA
                 d = rom[regs.pc++];  // Fix: fetch from ROM
-                if (inputQueue.length === 0) {
+                if (currentInput === null) {
                     waitingForInput = true;
                     inputField.disabled = false;
                     inputBtn.disabled = false;
@@ -369,7 +369,8 @@
                     appendToTerminal('Aguardando entrada...', 'input');
                     return;
                 }
-                const input = inputQueue.shift();
+                const input = currentInput;
+                currentInput = null;
                 regs[regsMap[d]] = input.charCodeAt(0);
                 appendToTerminal(`Entrada: ${input}`, 'input');
                 break;
@@ -488,8 +489,8 @@
         updateUI();
     };
     document.getElementById('inputBtn').onclick = () => {
-        const txt = document.getElementById('inputField').value;
-        for (let ch of txt) inputQueue.push(ch);
+        const raw = document.getElementById('inputField').value;
+        currentInput = raw.length > 0 ? raw[0] : String.fromCharCode(0);
         document.getElementById('inputField').value = '';
         inputField.disabled = true;
         inputBtn.disabled = true;

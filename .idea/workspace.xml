@@ -6,6 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="8f59ef4a-8317-4c3c-a316-240cc7e06d9a" name="Changes" comment="fix">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/exercicios/ex07_reverse_name.asm" beforeDir="false" afterPath="$PROJECT_DIR$/exercicios/ex07_reverse_name.asm" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
