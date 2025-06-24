@@ -14,7 +14,7 @@
             font-family: monospace;
         }
 
-        #controls, #io, #registers, #memory {
+        #controls, #io, #registers, #memory, #rom {
             margin-bottom: 20px;
         }
 
@@ -28,7 +28,7 @@
             text-align: center;
         }
 
-        #memoryTable td {
+        #romTable td, #memoryTable td {
             width: 30px;
         }
 
@@ -123,8 +123,12 @@
         </tr>
     </table>
 </div>
+<div id="rom">
+    <h2>ROM (256 bytes - Program)</h2>
+    <table id="romTable"></table>
+</div>
 <div id="memory">
-    <h2>Memória (256 bytes)</h2>
+    <h2>RAM (256 bytes - Data)</h2>
     <table id="memoryTable"></table>
 </div>
 <script>
@@ -137,7 +141,8 @@
         'EMPILHA': 0x17, 'DESEMPILHA': 0x18, 'CHAMA': 0x19, 'RETORNA': 0x1A
     };
 
-    let memory = new Uint8Array(256);
+    let memory = new Uint8Array(256); // RAM
+    let rom = new Uint8Array(256);    // ROM
     let regs = {r0: 0, r1: 0, r2: 0, r3: 0, pc: 0, sp: 255};
     let flags = {Z: 0, C: 0};
     let inputQueue = [];
@@ -146,18 +151,26 @@
     const regsMap = ['r0', 'r1', 'r2', 'r3'];
 
     function initMemoryView() {
-        const tbl = document.getElementById('memoryTable');
+        const tbl = document.getElementById('romTable');
+        const tbl2 = document.getElementById('memoryTable');
         tbl.innerHTML = '';
+        tbl2.innerHTML = '';
         for (let row = 0; row < 16; row++) {
             const tr = document.createElement('tr');
+            const tr2 = document.createElement('tr');
             for (let col = 0; col < 16; col++) {
                 const addr = row * 16 + col;
                 const td = document.createElement('td');
-                td.id = 'mem' + addr;
+                const td2 = document.createElement('td');
+                td.id = 'rom' + addr;
+                td2.id = 'mem' + addr;
                 td.textContent = '00';
+                td2.textContent = '00';
                 tr.appendChild(td);
+                tr2.appendChild(td2);
             }
             tbl.appendChild(tr);
+            tbl2.appendChild(tr2);
         }
     }
 
@@ -165,10 +178,16 @@
         ['r0', 'r1', 'r2', 'r3', 'pc', 'sp'].forEach(id => document.getElementById(id).textContent = regs[id]);
         document.getElementById('flagZ').textContent = flags.Z;
         document.getElementById('flagC').textContent = flags.C;
-        for (let i = 0; i < 256; i++) document.getElementById('mem' + i).textContent = memory[i].toString(16).padStart(2, '0');
+        for (let i = 0; i < 256; i++) {
+            document.getElementById('rom' + i).textContent = rom[i].toString(16).padStart(2, '0');
+            document.getElementById('mem' + i).textContent = memory[i].toString(16).padStart(2, '0');
+        }
     }
 
     function parseProgram(text) {
+        // Reset ROM
+        rom.fill(0);
+
         const lines = text.split(/\r?\n/);
         const labels = {};
         let addr = 0;
@@ -192,14 +211,14 @@
             if (parts[0].endsWith(':')) return;
             const op = parts[0].toUpperCase();
             const opc = OPCODES[op];
-            memory[addr++] = opc;
+            rom[addr++] = opc;
             parts.slice(1).forEach(tok => {
                 let val;
                 if (tok.match(/^R[0-3]$/i)) val = parseInt(tok[1]);
                 else if (tok.match(/^[0-9]+$/)) val = parseInt(tok);
                 else if (labels[tok] !== undefined) val = labels[tok];
                 else val = 0;
-                memory[addr++] = val;
+                rom[addr++] = val;
             });
         });
         regs.pc = 0;
@@ -228,41 +247,41 @@
     function step() {
         if (waitingForInput) return;
 
-        const op = memory[regs.pc];
+        const op = rom[regs.pc];
         const originalPc = regs.pc;
 
         // Execute instruction
         regs.pc++;
         switch (op) {
-            case 0x00:
+            case 0x00: // NADA
                 running = false;
                 break;
             case 0x01: // CAR_IMD
-                d = memory[regs.pc++];
-                regs[regsMap[d]] = memory[regs.pc++];
-                appendToTerminal(`Carregando imediato: ${getInstructionText(op, [d, memory[regs.pc - 1]])}`, 'instruction');
+                d = rom[regs.pc++];
+                regs[regsMap[d]] = rom[regs.pc++];
+                appendToTerminal(`Carregando imediato: ${getInstructionText(op, [d, rom[regs.pc - 1]])}`, 'instruction');
                 break;
             case 0x02: // COPIA
-                d = memory[regs.pc++];
-                o1 = memory[regs.pc++];
+                d = rom[regs.pc++];
+                o1 = rom[regs.pc++];
                 regs[regsMap[d]] = regs[regsMap[o1]];
                 appendToTerminal(`Copiando: ${getInstructionText(op, [d, o1])}`, 'instruction');
                 break;
             case 0x03: // LE_MEM
-                d = memory[regs.pc++];
-                o1 = memory[regs.pc++];
-                regs[regsMap[d]] = memory[o1];
+                d = rom[regs.pc++];
+                o1 = rom[regs.pc++];
+                regs[regsMap[d]] = memory[o1];  // Read from RAM
                 appendToTerminal(`Lendo da memória: ${getInstructionText(op, [d, o1])}`, 'instruction');
                 break;
             case 0x04: // ES_MEM
-                o1 = memory[regs.pc++];
-                o2 = memory[regs.pc++];
-                memory[o2] = regs[regsMap[o1]];
+                o1 = rom[regs.pc++];
+                o2 = rom[regs.pc++];
+                memory[o2] = regs[regsMap[o1]];  // Write to RAM
                 appendToTerminal(`Escrevendo na memória: ${getInstructionText(op, [o1, o2])}`, 'instruction');
                 break;
             case 0x05: // SOMA
-                d = memory[regs.pc++];
-                o1 = memory[regs.pc++];
+                d = rom[regs.pc++];  // Fix: fetch from ROM
+                o1 = rom[regs.pc++];  // Fix: fetch from ROM
             {
                 const res = regs[regsMap[d]] + regs[regsMap[o1]];
                 flags.C = res > 255 ? 1 : 0;
@@ -272,8 +291,8 @@
             }
                 break;
             case 0x06: // SUBTRAI
-                d = memory[regs.pc++];
-                o1 = memory[regs.pc++];
+                d = rom[regs.pc++];  // Fix: fetch from ROM
+                o1 = rom[regs.pc++];  // Fix: fetch from ROM
             {
                 const res = regs[regsMap[d]] - regs[regsMap[o1]];
                 flags.C = res < 0 ? 1 : 0;
@@ -283,8 +302,8 @@
             }
                 break;
             case 0x07: // MULTIPLICA
-                d = memory[regs.pc++];
-                o1 = memory[regs.pc++];
+                d = rom[regs.pc++];  // Fix: fetch from ROM
+                o1 = rom[regs.pc++];  // Fix: fetch from ROM
             {
                 const res = regs[regsMap[d]] * regs[regsMap[o1]];
                 flags.C = res > 255 ? 1 : 0;
@@ -294,68 +313,59 @@
             }
                 break;
             case 0x08: // DIVIDE
-                d = memory[regs.pc++];
-                o1 = memory[regs.pc++];
+                d = rom[regs.pc++];  // Fix: fetch from ROM
+                o1 = rom[regs.pc++];  // Fix: fetch from ROM
             {
                 const a = regs[regsMap[d]];
                 const b = regs[regsMap[o1]] || 1;
                 regs[regsMap[d]] = Math.floor(a / b);
                 flags.Z = regs[regsMap[d]] === 0 ? 1 : 0;
-
                 appendToTerminal(`Divisão: ${getInstructionText(op, [d, o1])}`, 'instruction');
-                break;
             }
+                break;
             case 0x09: // E_BIT
             case 0x0A: // OU_BIT
-                d = memory[regs.pc++];
-                o1 = memory[regs.pc++];
+                d = rom[regs.pc++];  // Fix: fetch from ROM
+                o1 = rom[regs.pc++];  // Fix: fetch from ROM
             {
                 const a = regs[regsMap[d]];
                 const b = regs[regsMap[o1]];
                 rsp = op === 0x09 ? (a & b) : (a | b);
                 regs[regsMap[d]] = rsp;
                 flags.Z = rsp === 0 ? 1 : 0;
-
-                if (op === 0x09) {
-                    appendToTerminal(`E Bit: ${getInstructionText(op, [d, o1])}`, 'instruction');
-                } else {
-                    appendToTerminal(`OU Bit: ${getInstructionText(op, [d, o1])}`, 'instruction');
-                }
+                appendToTerminal(op === 0x09 ? `E Bit: ${getInstructionText(op, [d, o1])}` :
+                                             `OU Bit: ${getInstructionText(op, [d, o1])}`, 'instruction');
             }
                 break;
             case 0x0B: // NAO_BIT
-                d = memory[regs.pc++];
+                d = rom[regs.pc++];  // Fix: fetch from ROM
                 regs[regsMap[d]] = (~regs[regsMap[d]] & 0xFF);
                 flags.Z = regs[regsMap[d]] === 0 ? 1 : 0;
-
                 appendToTerminal(`NÃO Bit: ${getInstructionText(op, [d])}`, 'instruction');
                 break;
             case 0x0C: // SALTA
-                o1 = memory[regs.pc++];
+                o1 = rom[regs.pc++];  // Fix: fetch from ROM
                 regs.pc = o1;
-
                 appendToTerminal(`Salto: ${getInstructionText(op, [o1])}`, 'instruction');
                 break;
             case 0x0D: // SALTA_Z
-                o1 = memory[regs.pc++];
+                o1 = rom[regs.pc++];  // Fix: fetch from ROM
                 if (flags.Z) regs.pc = o1;
-
                 appendToTerminal(`Salto Condicional Z: ${getInstructionText(op, [o1])}`, 'instruction');
                 break;
             case 0x0E: // SALTA_NZ
-                o1 = memory[regs.pc++];
+                o1 = rom[regs.pc++];  // Fix: fetch from ROM
                 if (!flags.Z) regs.pc = o1;
-
                 appendToTerminal(`Salto Condicional NZ: ${getInstructionText(op, [o1])}`, 'instruction');
                 break;
             case 0x0F: // ENTRADA
-                d = memory[regs.pc++];
+                d = rom[regs.pc++];  // Fix: fetch from ROM
                 if (inputQueue.length === 0) {
                     waitingForInput = true;
                     inputField.disabled = false;
                     inputBtn.disabled = false;
                     inputField.focus();
-                    regs.pc = originalPc; // Revert PC to retry this instruction
+                    regs.pc = originalPc;
                     appendToTerminal('Aguardando entrada...', 'input');
                     return;
                 }
@@ -364,80 +374,72 @@
                 appendToTerminal(`Entrada: ${input}`, 'input');
                 break;
             case 0x10: // SAIDA
-                o1 = memory[regs.pc++];
-                console.log("Saída de caractere:", o1);
-                console.log("Registrador:", regs[regsMap[o1]]);
+                o1 = rom[regs.pc++];  // Fix: fetch from ROM
                 const char = String.fromCharCode(regs[regsMap[o1]]);
-                console.log("char", char);
                 appendToTerminal(`Saída: ${char}`, 'output');
                 break;
             case 0x11: // INC
-                d = memory[regs.pc++];
+                d = rom[regs.pc++];  // Fix: fetch from ROM
                 regs[regsMap[d]] = (regs[regsMap[d]] + 1) & 0xFF;
                 flags.Z = regs[regsMap[d]] === 0 ? 1 : 0;
                 flags.C = regs[regsMap[d]] === 0 ? 1 : 0;
-
                 appendToTerminal(`Incremento: ${getInstructionText(op, [d])}`, 'instruction');
                 break;
             case 0x12: // DEC
-                d = memory[regs.pc++];
+                d = rom[regs.pc++];  // Fix: fetch from ROM
                 regs[regsMap[d]] = (regs[regsMap[d]] - 1) & 0xFF;
                 flags.Z = regs[regsMap[d]] === 0 ? 1 : 0;
                 flags.C = regs[regsMap[d]] === 255 ? 1 : 0;
-
                 appendToTerminal(`Decremento: ${getInstructionText(op, [d])}`, 'instruction');
                 break;
             case 0x13: // MAIOR
-                d = memory[regs.pc++];
-                let r1 = regs[regsMap[memory[regs.pc++]]];
-                let r2 = regs[regsMap[memory[regs.pc++]]];
+                d = rom[regs.pc++];  // Fix: fetch from ROM
+                let r1 = regs[regsMap[rom[regs.pc++]]];  // Fix: fetch from ROM
+                let r2 = regs[regsMap[rom[regs.pc++]]];  // Fix: fetch from ROM
                 const m = r1 > r2 ? r1 : r2;
                 regs[regsMap[d]] = m;
                 flags.Z = m === 0 ? 1 : 0;
-
                 appendToTerminal(`Maior: ${getInstructionText(op, [d, r1, r2])}`, 'instruction');
                 break;
             case 0x14: // ZERA
-                d = memory[regs.pc++];
+                d = rom[regs.pc++];  // Fix: fetch from ROM
                 regs[regsMap[d]] = 0;
                 flags.Z = 1;
-
                 appendToTerminal(`Zerando: ${getInstructionText(op, [d])}`, 'instruction');
                 break;
             case 0x15: // LE_INDIRETO
-                d = memory[regs.pc++];
-                o1 = memory[regs.pc++];
-                regs[regsMap[d]] = memory[regs[regsMap[o1]]];
-
+                d = rom[regs.pc++];
+                o1 = rom[regs.pc++];
+                regs[regsMap[d]] = memory[regs[regsMap[o1]]];  // Read from RAM
                 appendToTerminal(`Leitura indireta: ${getInstructionText(op, [d, o1])}`, 'instruction');
                 break;
             case 0x16: // ES_INDIRETO
-                o1 = memory[regs.pc++];
-                o2 = memory[regs.pc++];
-                memory[regs[regsMap[o2]]] = regs[regsMap[o1]];
+                o1 = rom[regs.pc++];
+                o2 = rom[regs.pc++];
+                memory[regs[regsMap[o2]]] = regs[regsMap[o1]];  // Write to RAM
                 appendToTerminal(`Escrita indireta: ${getInstructionText(op, [o1, o2])}`, 'instruction');
                 break;
             case 0x17: // EMPILHA
-                d = memory[regs.pc++];
+                d = rom[regs.pc++];
                 regs.sp--;
-                memory[regs.sp] = regs[regsMap[d]];
+                memory[regs.sp] = regs[regsMap[d]];  // Stack operations use RAM
                 appendToTerminal(`Empilhando: ${getInstructionText(op, [d])}`, 'instruction');
                 break;
             case 0x18: // DESEMPILHA
-                d = memory[regs.pc++];
-                regs[regsMap[d]] = memory[regs.sp];
+                d = rom[regs.pc++];
+                regs[regsMap[d]] = memory[regs.sp];  // Stack operations use RAM
                 regs.sp++;
                 appendToTerminal(`Desempilhando: ${getInstructionText(op, [d])}`, 'instruction');
                 break;
             case 0x19: // CHAMA
-                o1 = memory[regs.pc++];
+                o1 = rom[regs.pc++];
                 regs.sp--;
-                memory[regs.sp] = regs.pc;
+                memory[regs.sp] = regs.pc;  // Store return address in RAM stack
                 regs.pc = o1;
                 appendToTerminal(`Chamada de subrotina: ${getInstructionText(op, [o1])}`, 'instruction');
                 break;
             case 0x1A: // RETORNA
-                regs.pc = memory[regs.sp];
+                regs.pc = memory[regs.sp];  // Get return address from RAM stack
                 regs.sp++;
                 appendToTerminal(`Retorno de subrotina`, 'instruction');
                 break;
