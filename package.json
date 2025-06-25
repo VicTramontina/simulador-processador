@@ -1,0 +1,19 @@
+{
+  "name": "simulador-processador",
+  "version": "1.0.0",
+  "description": "Este repositório contém um simulador de processador virtual completo, desenvolvido em HTML/CSS/JavaScript. Ele permite carregar programas escritos em um conjunto de instruções customizado, suporta definição de labels e execução passo a passo ou automática, além de exibir registradores, flags, memória e I/O.",
+  "main": "script.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "jsdom": "^26.1.0"
+  }
+}
