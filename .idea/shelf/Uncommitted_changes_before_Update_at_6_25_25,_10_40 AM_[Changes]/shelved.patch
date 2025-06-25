@@ -1,0 +1,197 @@
+Index: index.html
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><!DOCTYPE html>\n<html lang=\"pt-BR\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Simulador de Processador Virtual</title>\n    <style>\n        body {\n            font-family: Arial, sans-serif;\n            margin: 20px;\n        }\n\n        textarea, input {\n            font-family: monospace;\n        }\n\n        #controls, #io, #registers, #memory {\n            margin-bottom: 20px;\n        }\n\n        table {\n            border-collapse: collapse;\n        }\n\n        th, td {\n            border: 1px solid #999;\n            padding: 4px 8px;\n            text-align: center;\n        }\n\n        #memoryTable td {\n            width: 30px;\n        }\n\n        #output {\n            display: inline-block;\n            min-width: 200px;\n            background: #f7f7f7;\n            padding: 4px;\n        }\n\n        #terminal {\n            font-family: monospace;\n            background-color: #1e1e1e;\n            color: #fff;\n            padding: 10px;\n            margin: 10px 0;\n            height: 300px;\n            overflow-y: auto;\n            border-radius: 4px;\n        }\n\n        #terminal .instruction {\n            color: #4ec9b0;\n        }\n\n        #terminal .input {\n            color: #569cd6;\n        }\n\n        #terminal .output {\n            color: #ce9178;\n        }\n\n        #io {\n            margin: 10px 0;\n        }\n\n        #inputField {\n            padding: 4px;\n            margin-right: 5px;\n        }\n\n        #inputField:disabled {\n            background-color: #f0f0f0;\n            cursor: not-allowed;\n        }\n\n        #inputBtn:disabled {\n            cursor: not-allowed;\n            opacity: 0.6;\n        }\n    </style>\n</head>\n<body>\n<h1>Simulador de Processador Virtual</h1>\n<div id=\"controls\">\n    <textarea id=\"program\" rows=\"8\" cols=\"60\" placeholder=\"Escreva o programa em mnemonicos e labels\"></textarea><br>\n    <button id=\"loadBtn\">Carregar Programa</button>\n    <button id=\"stepBtn\" disabled>Passo a Passo</button>\n    <button id=\"runBtn\" disabled>Executar</button>\n    <button id=\"resetBtn\" disabled>Resetar</button>\n</div>\n\n<div id=\"terminal\"></div>\n\n<div id=\"io\">\n    <input id=\"inputField\" type=\"text\" placeholder=\"Entrada\" disabled/>\n    <button id=\"inputBtn\" disabled>Enviar</button>\n</div>\n<div id=\"registers\">\n    <h2>Registradores</h2>\n    <table>\n        <tr>\n            <th>R0</th>\n            <th>R1</th>\n            <th>R2</th>\n            <th>R3</th>\n            <th>PC</th>\n            <th>SP</th>\n            <th>Z</th>\n            <th>C</th>\n        </tr>\n        <tr>\n            <td id=\"r0\">0</td>\n            <td id=\"r1\">0</td>\n            <td id=\"r2\">0</td>\n            <td id=\"r3\">0</td>\n            <td id=\"pc\">0</td>\n            <td id=\"sp\">0</td>\n            <td id=\"flagZ\">0</td>\n            <td id=\"flagC\">0</td>\n        </tr>\n    </table>\n</div>\n<div id=\"memory\">\n    <h2>Memória (256 bytes)</h2>\n    <table id=\"memoryTable\"></table>\n</div>\n<script>\n    const OPCODES = {\n        'NADA': 0x00, 'CAR_IMD': 0x01, 'COPIA': 0x02, 'LE_MEM': 0x03, 'ES_MEM': 0x04,\n        'SOMA': 0x05, 'SUBTRAI': 0x06, 'MULTIPLICA': 0x07, 'DIVIDE': 0x08, 'E_BIT': 0x09,\n        'OU_BIT': 0x0A, 'NAO_BIT': 0x0B, 'SALTA': 0x0C, 'SALTA_Z': 0x0D, 'SALTA_NZ': 0x0E,\n        'ENTRADA': 0x0F, 'SAIDA': 0x10, 'INC': 0x11, 'DEC': 0x12, 'MAIOR': 0x13, 'ZERA': 0x14,\n        'LE_INDIRETO': 0x15, 'ES_INDIRETO': 0x16,\n        'EMPILHA': 0x17, 'DESEMPILHA': 0x18, 'CHAMA': 0x19, 'RETORNA': 0x1A\n    };\n\n    let memory = new Uint8Array(256);\n    let regs = {r0: 0, r1: 0, r2: 0, r3: 0, pc: 0, sp: 255};\n    let flags = {Z: 0, C: 0};\n    let inputQueue = [];\n    let running = false;\n\n    const regsMap = ['r0', 'r1', 'r2', 'r3'];\n\n    function initMemoryView() {\n        const tbl = document.getElementById('memoryTable');\n        tbl.innerHTML = '';\n        for (let row = 0; row < 16; row++) {\n            const tr = document.createElement('tr');\n            for (let col = 0; col < 16; col++) {\n                const addr = row * 16 + col;\n                const td = document.createElement('td');\n                td.id = 'mem' + addr;\n                td.textContent = '00';\n                tr.appendChild(td);\n            }\n            tbl.appendChild(tr);\n        }\n    }\n\n    function updateUI() {\n        ['r0', 'r1', 'r2', 'r3', 'pc', 'sp'].forEach(id => document.getElementById(id).textContent = regs[id]);\n        document.getElementById('flagZ').textContent = flags.Z;\n        document.getElementById('flagC').textContent = flags.C;\n        for (let i = 0; i < 256; i++) document.getElementById('mem' + i).textContent = memory[i].toString(16).padStart(2, '0');\n    }\n\n    function parseProgram(text) {\n        const lines = text.split(/\\r?\\n/);\n        const labels = {};\n        let addr = 0;\n        // first pass: labels\n        lines.forEach(line => {\n            const code = line.split(';')[0].trim();\n            if (!code) return;\n            const parts = code.replace(/,/g, ' ').split(/\\s+/);\n            if (parts[0].endsWith(':')) {\n                labels[parts[0].slice(0, -1)] = addr;\n            } else {\n                addr += 1 + (parts.length - 1);\n            }\n        });\n        // second pass: assemble\n        addr = 0;\n        lines.forEach(line => {\n            const code = line.split(';')[0].trim();\n            if (!code) return;\n            const parts = code.replace(/,/g, ' ').split(/\\s+/);\n            if (parts[0].endsWith(':')) return;\n            const op = parts[0].toUpperCase();\n            const opc = OPCODES[op];\n            memory[addr++] = opc;\n            parts.slice(1).forEach(tok => {\n                let val;\n                if (tok.match(/^R[0-3]$/i)) val = parseInt(tok[1]);\n                else if (tok.match(/^[0-9]+$/)) val = parseInt(tok);\n                else if (labels[tok] !== undefined) val = labels[tok];\n                else val = 0;\n                memory[addr++] = val;\n            });\n        });\n        regs.pc = 0;\n        flags.Z = 0;\n        flags.C = 0;\n    }\n\n    const terminal = document.getElementById('terminal');\n    const inputField = document.getElementById('inputField');\n    const inputBtn = document.getElementById('inputBtn');\n    let waitingForInput = false;\n\n    function appendToTerminal(text, className) {\n        const line = document.createElement('div');\n        line.textContent = text;\n        if (className) line.className = className;\n        terminal.appendChild(line);\n        terminal.scrollTop = terminal.scrollHeight;\n    }\n\n    function getInstructionText(op, params) {\n        const opNames = Object.entries(OPCODES).find(([_, v]) => v === op)?.[0] || 'UNKNOWN';\n        return `${opNames} ${params.map(p => typeof p === 'number' ? p : `R${p}`).join(' ')}`;\n    }\n\n    function step() {\n        if (waitingForInput) return;\n\n        const op = memory[regs.pc];\n        const originalPc = regs.pc;\n\n        // Execute instruction\n        regs.pc++;\n        switch (op) {\n            case 0x00:\n                running = false;\n                break;\n            case 0x01: // CAR_IMD\n                d = memory[regs.pc++];\n                regs[regsMap[d]] = memory[regs.pc++];\n                appendToTerminal(`Carregando imediato: ${getInstructionText(op, [d, memory[regs.pc - 1]])}`, 'instruction');\n                break;\n            case 0x02: // COPIA\n                d = memory[regs.pc++];\n                o1 = memory[regs.pc++];\n                regs[regsMap[d]] = regs[regsMap[o1]];\n                appendToTerminal(`Copiando: ${getInstructionText(op, [d, o1])}`, 'instruction');\n                break;\n            case 0x03: // LE_MEM\n                d = memory[regs.pc++];\n                o1 = memory[regs.pc++];\n                regs[regsMap[d]] = memory[o1];\n                appendToTerminal(`Lendo da memória: ${getInstructionText(op, [d, o1])}`, 'instruction');\n                break;\n            case 0x04: // ES_MEM\n                o1 = memory[regs.pc++];\n                o2 = memory[regs.pc++];\n                memory[o2] = regs[regsMap[o1]];\n                appendToTerminal(`Escrevendo na memória: ${getInstructionText(op, [o1, o2])}`, 'instruction');\n                break;\n            case 0x05: // SOMA\n                d = memory[regs.pc++];\n                o1 = memory[regs.pc++];\n            {\n                const res = regs[regsMap[d]] + regs[regsMap[o1]];\n                flags.C = res > 255 ? 1 : 0;\n                regs[regsMap[d]] = res & 0xFF;\n                flags.Z = regs[regsMap[d]] === 0 ? 1 : 0;\n                appendToTerminal(`Soma: ${getInstructionText(op, [d, o1])}`, 'instruction');\n            }\n                break;\n            case 0x06: // SUBTRAI\n                d = memory[regs.pc++];\n                o1 = memory[regs.pc++];\n            {\n                const res = regs[regsMap[d]] - regs[regsMap[o1]];\n                flags.C = res < 0 ? 1 : 0;\n                regs[regsMap[d]] = res & 0xFF;\n                flags.Z = regs[regsMap[d]] === 0 ? 1 : 0;\n                appendToTerminal(`Subtração: ${getInstructionText(op, [d, o1])}`, 'instruction');\n            }\n                break;\n            case 0x07: // MULTIPLICA\n                d = memory[regs.pc++];\n                o1 = memory[regs.pc++];\n            {\n                const res = regs[regsMap[d]] * regs[regsMap[o1]];\n                flags.C = res > 255 ? 1 : 0;\n                regs[regsMap[d]] = res & 0xFF;\n                flags.Z = regs[regsMap[d]] === 0 ? 1 : 0;\n                appendToTerminal(`Multiplicação: ${getInstructionText(op, [d, o1])}`, 'instruction');\n            }\n                break;\n            case 0x08: // DIVIDE\n                d = memory[regs.pc++];\n                o1 = memory[regs.pc++];\n            {\n                const a = regs[regsMap[d]];\n                const b = regs[regsMap[o1]] || 1;\n                regs[regsMap[d]] = Math.floor(a / b);\n                flags.Z = regs[regsMap[d]] === 0 ? 1 : 0;\n\n                appendToTerminal(`Divisão: ${getInstructionText(op, [d, o1])}`, 'instruction');\n                break;\n            }\n            case 0x09: // E_BIT\n            case 0x0A: // OU_BIT\n                d = memory[regs.pc++];\n                o1 = memory[regs.pc++];\n            {\n                const a = regs[regsMap[d]];\n                const b = regs[regsMap[o1]];\n                rsp = op === 0x09 ? (a & b) : (a | b);\n                regs[regsMap[d]] = rsp;\n                flags.Z = rsp === 0 ? 1 : 0;\n\n                if (op === 0x09) {\n                    appendToTerminal(`E Bit: ${getInstructionText(op, [d, o1])}`, 'instruction');\n                } else {\n                    appendToTerminal(`OU Bit: ${getInstructionText(op, [d, o1])}`, 'instruction');\n                }\n            }\n                break;\n            case 0x0B: // NAO_BIT\n                d = memory[regs.pc++];\n                regs[regsMap[d]] = (~regs[regsMap[d]] & 0xFF);\n                flags.Z = regs[regsMap[d]] === 0 ? 1 : 0;\n\n                appendToTerminal(`NÃO Bit: ${getInstructionText(op, [d])}`, 'instruction');\n                break;\n            case 0x0C: // SALTA\n                o1 = memory[regs.pc++];\n                regs.pc = o1;\n\n                appendToTerminal(`Salto: ${getInstructionText(op, [o1])}`, 'instruction');\n                break;\n            case 0x0D: // SALTA_Z\n                o1 = memory[regs.pc++];\n                if (flags.Z) regs.pc = o1;\n\n                appendToTerminal(`Salto Condicional Z: ${getInstructionText(op, [o1])}`, 'instruction');\n                break;\n            case 0x0E: // SALTA_NZ\n                o1 = memory[regs.pc++];\n                if (!flags.Z) regs.pc = o1;\n\n                appendToTerminal(`Salto Condicional NZ: ${getInstructionText(op, [o1])}`, 'instruction');\n                break;\n            case 0x0F: // ENTRADA\n                d = memory[regs.pc++];\n                if (inputQueue.length === 0) {\n                    waitingForInput = true;\n                    inputField.disabled = false;\n                    inputBtn.disabled = false;\n                    inputField.focus();\n                    regs.pc = originalPc; // Revert PC to retry this instruction\n                    appendToTerminal('Aguardando entrada...', 'input');\n                    return;\n                }\n                const input = inputQueue.shift();\n                regs[regsMap[d]] = input.charCodeAt(0);\n                appendToTerminal(`Entrada: ${input}`, 'input');\n                break;\n            case 0x10: // SAIDA\n                o1 = memory[regs.pc++];\n                console.log(\"Saída de caractere:\", o1);\n                console.log(\"Registrador:\", regs[regsMap[o1]]);\n                const char = String.fromCharCode(regs[regsMap[o1]]);\n                console.log(\"char\", char);\n                appendToTerminal(`Saída: ${char}`, 'output');\n                break;\n            case 0x11: // INC\n                d = memory[regs.pc++];\n                regs[regsMap[d]] = (regs[regsMap[d]] + 1) & 0xFF;\n                flags.Z = regs[regsMap[d]] === 0 ? 1 : 0;\n                flags.C = regs[regsMap[d]] === 0 ? 1 : 0;\n\n                appendToTerminal(`Incremento: ${getInstructionText(op, [d])}`, 'instruction');\n                break;\n            case 0x12: // DEC\n                d = memory[regs.pc++];\n                regs[regsMap[d]] = (regs[regsMap[d]] - 1) & 0xFF;\n                flags.Z = regs[regsMap[d]] === 0 ? 1 : 0;\n                flags.C = regs[regsMap[d]] === 255 ? 1 : 0;\n\n                appendToTerminal(`Decremento: ${getInstructionText(op, [d])}`, 'instruction');\n                break;\n            case 0x13: // MAIOR\n                d = memory[regs.pc++];\n                let r1 = regs[regsMap[memory[regs.pc++]]];\n                let r2 = regs[regsMap[memory[regs.pc++]]];\n                const m = r1 > r2 ? r1 : r2;\n                regs[regsMap[d]] = m;\n                flags.Z = m === 0 ? 1 : 0;\n\n                appendToTerminal(`Maior: ${getInstructionText(op, [d, r1, r2])}`, 'instruction');\n                break;\n            case 0x14: // ZERA\n                d = memory[regs.pc++];\n                regs[regsMap[d]] = 0;\n                flags.Z = 1;\n\n                appendToTerminal(`Zerando: ${getInstructionText(op, [d])}`, 'instruction');\n                break;\n            case 0x15: // LE_INDIRETO\n                d = memory[regs.pc++];\n                o1 = memory[regs.pc++];\n                regs[regsMap[d]] = memory[regs[regsMap[o1]]];\n\n                appendToTerminal(`Leitura indireta: ${getInstructionText(op, [d, o1])}`, 'instruction');\n                break;\n            case 0x16: // ES_INDIRETO\n                o1 = memory[regs.pc++];\n                o2 = memory[regs.pc++];\n                memory[regs[regsMap[o2]]] = regs[regsMap[o1]];\n                appendToTerminal(`Escrita indireta: ${getInstructionText(op, [o1, o2])}`, 'instruction');\n                break;\n            case 0x17: // EMPILHA\n                d = memory[regs.pc++];\n                regs.sp--;\n                memory[regs.sp] = regs[regsMap[d]];\n                appendToTerminal(`Empilhando: ${getInstructionText(op, [d])}`, 'instruction');\n                break;\n            case 0x18: // DESEMPILHA\n                d = memory[regs.pc++];\n                regs[regsMap[d]] = memory[regs.sp];\n                regs.sp++;\n                appendToTerminal(`Desempilhando: ${getInstructionText(op, [d])}`, 'instruction');\n                break;\n            case 0x19: // CHAMA\n                o1 = memory[regs.pc++];\n                regs.sp--;\n                memory[regs.sp] = regs.pc;\n                regs.pc = o1;\n                appendToTerminal(`Chamada de subrotina: ${getInstructionText(op, [o1])}`, 'instruction');\n                break;\n            case 0x1A: // RETORNA\n                regs.pc = memory[regs.sp];\n                regs.sp++;\n                appendToTerminal(`Retorno de subrotina`, 'instruction');\n                break;\n            default:\n                running = false;\n        }\n\n        updateUI();\n    }\n\n    function runAll() {\n        running = true;\n\n        function runStep() {\n            if (running && !waitingForInput) {\n                step();\n                if (running) {\n                    setTimeout(runStep, 100); // Add delay between steps for visibility\n                }\n            }\n        }\n\n        runStep();\n    }\n\n    document.getElementById('loadBtn').onclick = () => {\n        memory.fill(0);\n        initMemoryView();\n        terminal.innerHTML = '';\n        parseProgram(document.getElementById('program').value);\n        updateUI();\n        ['stepBtn', 'runBtn', 'resetBtn'].forEach(id => document.getElementById(id).disabled = false);\n    };\n    document.getElementById('stepBtn').onclick = () => {\n        step();\n    };\n    document.getElementById('runBtn').onclick = () => {\n        runAll();\n    };\n    document.getElementById('resetBtn').onclick = () => {\n        regs = {r0: 0, r1: 0, r2: 0, r3: 0, pc: 0, sp: 255};\n        flags = {Z: 0, C: 0};\n        memory.fill(0);\n        terminal.innerHTML = '';\n        initMemoryView();\n        updateUI();\n    };\n    document.getElementById('inputBtn').onclick = () => {\n        const txt = document.getElementById('inputField').value;\n        for (let ch of txt) inputQueue.push(ch);\n        document.getElementById('inputField').value = '';\n        inputField.disabled = true;\n        inputBtn.disabled = true;\n        waitingForInput = false;\n        if (running) {\n            setTimeout(() => runAll(), 0);\n        }\n    };\n\n    // initialize on load\n    initMemoryView();\n    updateUI();\n</script>\n</body>\n</html>\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/index.html b/index.html
+--- a/index.html	(revision b221a64443d690b73f9b127eeb50238c07ddb69c)
++++ b/index.html	(date 1750710330583)
+@@ -488,6 +488,7 @@
+     document.getElementById('inputBtn').onclick = () => {
+         const txt = document.getElementById('inputField').value;
+         for (let ch of txt) inputQueue.push(ch);
++        inputQueue.push('\r');  // Adiciona Enter (ASCII 13) automaticamente
+         document.getElementById('inputField').value = '';
+         inputField.disabled = true;
+         inputBtn.disabled = true;
+Index: exercicios/ex06_factorial.asm
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>; Ex06 - Solicitar um número e imprimir o seu fatorial\nSTART:\n  ENTRADA R0           ; lê número ASCII\n  CAR_IMD R1,48        ; '0'\n  SUBTRAI R0,R1        ; converte para valor n\n  ZERA R3              ; R3 = 0 for compare\n  CAR_IMD R2,1         ; resultado inicial = 1\n  ; loop fatorial\nFACT_LOOP:\n  ; se n == 0 então fim\n  ZERA R3\n  SUBTRAI R0,R3        ; define Z se R0==0\n  SALTA_Z END_FACT     ; se zero, pula fim\n  MULTIPLICA R2,R0     ; resultado *= n\n  DEC R0               ; n--\n  SALTA FACT_LOOP\nEND_FACT:\n  ; hardcode output '120'\n  CAR_IMD R0,49    ; '1'\n  SAIDA R0\n  CAR_IMD R0,50    ; '2'\n  SAIDA R0\n  CAR_IMD R0,48    ; '0'\n  SAIDA R0\n  NADA\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/exercicios/ex06_factorial.asm b/exercicios/ex06_factorial.asm
+--- a/exercicios/ex06_factorial.asm	(revision b221a64443d690b73f9b127eeb50238c07ddb69c)
++++ b/exercicios/ex06_factorial.asm	(date 1750709471270)
+@@ -1,25 +1,63 @@
+ ; Ex06 - Solicitar um número e imprimir o seu fatorial
+ START:
+   ENTRADA R0           ; lê número ASCII
+-  CAR_IMD R1,48        ; '0'
+-  SUBTRAI R0,R1        ; converte para valor n
+-  ZERA R3              ; R3 = 0 for compare
+-  CAR_IMD R2,1         ; resultado inicial = 1
++  CAR_IMD R1,48       ; '0'
++  SUBTRAI R0,R1       ; converte para valor n
++  ZERA R3             ; R3 = 0 for compare
++  CAR_IMD R2,1        ; resultado inicial = 1
++
+   ; loop fatorial
+ FACT_LOOP:
+-  ; se n == 0 então fim
+   ZERA R3
+-  SUBTRAI R0,R3        ; define Z se R0==0
+-  SALTA_Z END_FACT     ; se zero, pula fim
+-  MULTIPLICA R2,R0     ; resultado *= n
+-  DEC R0               ; n--
++  SUBTRAI R0,R3       ; define Z se R0==0
++  SALTA_Z END_FACT    ; se zero, pula fim
++  MULTIPLICA R2,R0    ; resultado *= n
++  DEC R0              ; n--
+   SALTA FACT_LOOP
++
+ END_FACT:
+-  ; hardcode output '120'
+-  CAR_IMD R0,49    ; '1'
+-  SAIDA R0
+-  CAR_IMD R0,50    ; '2'
+-  SAIDA R0
+-  CAR_IMD R0,48    ; '0'
+-  SAIDA R0
++  ; Converter R2 para ASCII e imprimir
++  ; Extrair centena
++  COPIA R0,R2         ; copiar resultado para R0
++  CAR_IMD R1,100
++  DIVIDE R0,R1        ; R0 = número/100 (centena)
++  CAR_IMD R1,48
++  SOMA R0,R1          ; converter para ASCII
++  SAIDA R0            ; imprimir centena
++
++  ; Extrair dezena
++  COPIA R0,R2         ; restaurar número original
++  CAR_IMD R1,100
++  DIVIDE R0,R1        ; R0 = número/100
++  MULTIPLICA R0,R1    ; R0 = (número/100)*100
++  COPIA R1,R2
++  SUBTRAI R1,R0       ; R1 = número - (número/100)*100 (resto)
++  COPIA R0,R1         ; R0 = resto
++  CAR_IMD R1,10
++  DIVIDE R0,R1        ; R0 = (resto)/10 (dezena)
++  CAR_IMD R1,48
++  SOMA R0,R1          ; converter para ASCII
++  SAIDA R0            ; imprimir dezena
++
++  ; Extrair unidade
++  COPIA R0,R2         ; restaurar número original
++  CAR_IMD R1,100
++  DIVIDE R0,R1        ; R0 = número/100
++  MULTIPLICA R0,R1    ; R0 = (número/100)*100
++  COPIA R1,R2
++  SUBTRAI R1,R0       ; R1 = resto das centenas
++  COPIA R0,R1         ; R0 = resto das centenas
++  CAR_IMD R1,10
++  DIVIDE R0,R1        ; R0 = dezena
++  MULTIPLICA R0,R1    ; R0 = dezena*10
++  COPIA R1,R2         ; R1 = número original
++  CAR_IMD R3,100
++  DIVIDE R1,R3        ; R1 = centenas
++  MULTIPLICA R1,R3    ; R1 = centenas*100
++  SUBTRAI R2,R1       ; R2 = número - centenas*100
++  SUBTRAI R2,R0       ; R2 = resto final (unidade)
++  COPIA R0,R2         ; mover unidade para R0
++  CAR_IMD R1,48
++  SOMA R0,R1          ; converter para ASCII
++  SAIDA R0            ; imprimir unidade
+   NADA
+Index: exercicios/ex07_reverse_name.asm
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>; Ex07 - Solicitar um nome e imprimir ao contrário\nSTART:\n  ZERA R2            ; contador de caracteres\nREAD_CHAR:\n  ENTRADA R0         ; lê caracter ASCII em R0\n  ZERA R3\n  SUBTRAI R0,R3      ; set Z if char == 0\n  SALTA_Z REVERSE    ; se zero (fim da entrada), vai inverter\n  ES_INDIRETO R0,R2  ; armazena em memória\n  INC R2             ; contador++\n  SALTA READ_CHAR\n\nREVERSE:\n  COPIA R1,R2        ; R1 = contador\nREV_LOOP:\n  DEC R1             ; R1--\n  LE_INDIRETO R0,R1  ; lê mem[R1]\n  SAIDA R0           ; imprime caracter\n  SALTA_NZ REV_LOOP  ; repete até R1==0 processado\nNADA                   ; fim do programa\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/exercicios/ex07_reverse_name.asm b/exercicios/ex07_reverse_name.asm
+--- a/exercicios/ex07_reverse_name.asm	(revision b221a64443d690b73f9b127eeb50238c07ddb69c)
++++ b/exercicios/ex07_reverse_name.asm	(date 1750710505089)
+@@ -1,20 +1,60 @@
+ ; Ex07 - Solicitar um nome e imprimir ao contrário
+-START:
+-  ZERA R2            ; contador de caracteres
+-READ_CHAR:
+-  ENTRADA R0         ; lê caracter ASCII em R0
+-  ZERA R3
+-  SUBTRAI R0,R3      ; set Z if char == 0
+-  SALTA_Z REVERSE    ; se zero (fim da entrada), vai inverter
+-  ES_INDIRETO R0,R2  ; armazena em memória
+-  INC R2             ; contador++
+-  SALTA READ_CHAR
++
++; R0 - Endereço atual da memória
++; R1 - Char lido da entrada
++; R2 - Tamanho do nome
++; R3 - Usado para comparações e cálculos temporários
++
++inicio:
++    CAR_IMD R0, 100    ; Endereço inicial para guardar o nome
++    CAR_IMD R2, 0      ; Inicializa contador
++
++loop_leitura:
++    ENTRADA R1         ; Lê um caractere
++
++    ; Verifica se é enter (ASCII 13) ou nova linha (ASCII 10)
++    CAR_IMD R3, 13
++    COPIA R0, R3       ; Guarda 13 em R0 temporariamente
++    SUBTRAI R0, R1     ; Compara com caractere lido
++    SALTA_Z fim_leitura
++
++    CAR_IMD R3, 10
++    COPIA R0, R3       ; Guarda 10 em R0 temporariamente
++    SUBTRAI R0, R1     ; Compara com caractere lido
++    SALTA_Z fim_leitura
++
++    ; Se não é enter, guarda na memória
++    CAR_IMD R0, 100    ; Reseta R0 para base
++    COPIA R3, R2       ; Guarda offset em R3
++    SOMA R0, R3        ; Adiciona offset atual
++    ES_MEM R1, R0      ; Guarda caractere na memória
++
++    INC R2             ; Incrementa contador
++    SALTA loop_leitura
++
++fim_leitura:
++    ; R2 contém o tamanho do nome
++    ; Agora vamos imprimir de trás pra frente
++    DEC R2             ; Ajusta para índice 0-based
++
++loop_impressao:
++    ; Calcula endereço: 100 + R2
++    CAR_IMD R0, 100    ; Reseta R0 para base
++    COPIA R3, R2       ; Guarda índice em R3
++    SOMA R0, R3        ; Adiciona offset atual
++
++    ; Lê caractere da memória
++    LE_MEM R1, R0
+ 
+-REVERSE:
+-  COPIA R1,R2        ; R1 = contador
+-REV_LOOP:
+-  DEC R1             ; R1--
+-  LE_INDIRETO R0,R1  ; lê mem[R1]
+-  SAIDA R0           ; imprime caracter
+-  SALTA_NZ REV_LOOP  ; repete até R1==0 processado
+-NADA                   ; fim do programa
++    ; Imprime
++    SAIDA R1
++
++    ; Decrementa contador e verifica se terminou
++    DEC R2
++    CAR_IMD R3, 255    ; Se R2 chegou a -1 (255 em 8 bits)
++    COPIA R0, R2
++    SUBTRAI R0, R3
++    SALTA_NZ loop_impressao
++
++fim:
++    NADA              ; Fim do programa
