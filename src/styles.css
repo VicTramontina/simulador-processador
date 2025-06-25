@@ -1,11 +1,47 @@
 body {
   font-family: Arial, sans-serif;
   margin: 20px;
+  background-color: #fafafa;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.grid {
+  display: grid;
+  gap: 20px;
+}
+
+#top-row {
+  grid-template-columns: 1fr;
+}
+
+#bottom-row {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  #top-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  #bottom-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.box {
+  background: #fff;
+  padding: 10px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 textarea,
 input {
   font-family: monospace;
+  width: 100%;
 }
 
 #controls,
@@ -92,6 +128,6 @@ td {
 }
 
 #programView .current {
-  background-color: #333;
-  color: #fff;
+  background-color: #ffd54f;
+  color: #000;
 }

@@ -7,67 +7,72 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <h1>Simulador de Processador Virtual</h1>
-    <div id="controls">
-      <textarea
-        id="program"
-        rows="8"
-        cols="60"
-        placeholder="Escreva o programa em mnemonicos e labels"
-      ></textarea
-      ><br />
-      <button id="loadBtn">Carregar Programa</button>
-      <button id="stepBtn" disabled>Passo a Passo</button>
-      <button id="runBtn" disabled>Executar</button>
-      <button id="resetBtn" disabled>Resetar</button>
-    </div>
+    <div id="app" class="container">
+      <h1>Simulador de Processador Virtual</h1>
+      <div id="top-row" class="grid">
+        <div id="controls" class="box">
+          <textarea
+            id="program"
+            rows="8"
+            cols="60"
+            placeholder="Escreva o programa em mnemonicos e labels"
+          ></textarea
+          ><br />
+          <button id="loadBtn">Carregar Programa</button>
+          <button id="stepBtn" disabled>Passo a Passo</button>
+          <button id="runBtn" disabled>Executar</button>
+          <button id="resetBtn" disabled>Resetar</button>
+        </div>
+        <div id="programView" class="box"></div>
+      </div>
 
-    <div id="programView"></div>
+      <div id="terminal" class="box"></div>
 
-    <div id="terminal"></div>
-
-    <div id="io">
-      <input
-        id="inputField"
-        type="text"
-        placeholder="Entrada"
-        maxlength="1"
-        disabled
-      />
-      <button id="inputBtn" disabled>Enviar</button>
-    </div>
-    <div id="registers">
-      <h2>Registradores</h2>
-      <table>
-        <tr>
-          <th>R0</th>
-          <th>R1</th>
-          <th>R2</th>
-          <th>R3</th>
-          <th>PC</th>
-          <th>SP</th>
-          <th>Z</th>
-          <th>C</th>
-        </tr>
-        <tr>
-          <td id="r0">0</td>
-          <td id="r1">0</td>
-          <td id="r2">0</td>
-          <td id="r3">0</td>
-          <td id="pc">0</td>
-          <td id="sp">0</td>
-          <td id="flagZ">0</td>
-          <td id="flagC">0</td>
-        </tr>
-      </table>
-    </div>
-    <div id="rom">
-      <h2>ROM (256 bytes - Program)</h2>
-      <table id="romTable"></table>
-    </div>
-    <div id="memory">
-      <h2>RAM (256 bytes - Data)</h2>
-      <table id="memoryTable"></table>
+      <div id="io">
+        <input
+          id="inputField"
+          type="text"
+          placeholder="Entrada"
+          maxlength="1"
+          disabled
+        />
+        <button id="inputBtn" disabled>Enviar</button>
+      </div>
+      <div id="bottom-row" class="grid">
+        <div id="registers" class="box">
+          <h2>Registradores</h2>
+          <table>
+            <tr>
+              <th>R0</th>
+              <th>R1</th>
+              <th>R2</th>
+              <th>R3</th>
+              <th>PC</th>
+              <th>SP</th>
+              <th>Z</th>
+              <th>C</th>
+            </tr>
+            <tr>
+              <td id="r0">0</td>
+              <td id="r1">0</td>
+              <td id="r2">0</td>
+              <td id="r3">0</td>
+              <td id="pc">0</td>
+              <td id="sp">0</td>
+              <td id="flagZ">0</td>
+              <td id="flagC">0</td>
+            </tr>
+          </table>
+        </div>
+        <div id="rom" class="box">
+          <h2>ROM (256 bytes - Program)</h2>
+          <table id="romTable"></table>
+        </div>
+        <div id="memory" class="box">
+          <h2>RAM (256 bytes - Data)</h2>
+          <table id="memoryTable"></table>
+        </div>
+      </div>
     </div>
     <script src="script.js"></script>
   </body>

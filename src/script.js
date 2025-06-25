@@ -99,7 +99,10 @@ function highlightCurrentLine(addr) {
   const idx = addrToLine[addr];
   if (idx !== null && idx !== undefined) {
     const el = document.getElementById("progLine" + idx);
-    if (el) el.classList.add("current");
+    if (el) {
+      el.classList.add("current");
+      el.scrollIntoView({ block: "center" });
+    }
   }
 }
 
