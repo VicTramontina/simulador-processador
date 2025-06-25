@@ -1,12 +1,35 @@
+/* Import Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+:root {
+  --color-primary: #4CAF50;
+  --color-secondary: #FFFFFF;
+  --bg-color: #F4F7F9;
+  --text-color: #333333;
+  --box-bg: #FFFFFF;
+  --header-bg: #4CAF50;
+  --header-text: #FFFFFF;
+  --border-radius: 6px;
+}
+
 body {
-  font-family: Arial, sans-serif;
-  margin: 20px;
-  background-color: #fafafa;
+  font-family: 'Roboto', Arial, sans-serif;
+  margin: 0;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+header {
+  background-color: var(--header-bg);
+  color: var(--header-text);
+  padding: 20px;
+  text-align: center;
 }
 
 .container {
   max-width: 1200px;
-  margin: 0 auto;
+  margin: 20px auto;
+  padding: 0 10px;
 }
 
 .grid {
@@ -14,20 +37,18 @@ body {
   gap: 20px;
 }
 
-#top-row {
+.grid-col {
+  display: grid;
   grid-template-columns: 1fr;
-}
-
-#memory-row {
-  grid-template-columns: 1fr;
+  gap: 20px;
 }
 
 @media (min-width: 768px) {
-  #top-row {
+  .grid-col {
     grid-template-columns: 1fr 1fr;
   }
-  #memory-row {
-    grid-template-columns: repeat(2, 1fr);
+  #top-row {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
@@ -38,10 +59,54 @@ body {
 }
 
 .box {
-  background: #fff;
-  padding: 10px;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: var(--box-bg);
+  padding: 15px;
+  border-radius: var(--border-radius);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.box h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 2px solid var(--color-primary);
+  font-weight: 500;
+}
+
+h1 {
+  margin: 0;
+  font-weight: 700;
+}
+
+button {
+  background-color: var(--color-primary);
+  color: var(--color-secondary);
+  border: none;
+  padding: 10px 16px;
+  margin: 5px 0;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+button:hover:enabled {
+  background-color: #45A047;
+}
+
+button:disabled {
+  background-color: #AAA;
+  cursor: not-allowed;
+}
+
+textarea,
+input[type="text"] {
+  font-family: monospace;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #CCC;
+  border-radius: var(--border-radius);
+  resize: vertical;
 }
 
 #controls {
@@ -50,7 +115,7 @@ body {
 }
 
 #controls textarea {
-  flex-grow: 1;
+  margin-bottom: 10px;
 }
 
 #program-area {
@@ -59,95 +124,95 @@ body {
   gap: 20px;
 }
 
-textarea,
-input {
-  font-family: monospace;
+table {
+  border-collapse: collapse;
   width: 100%;
 }
 
-#controls,
-#io,
-#memory,
-#rom {
-  margin-bottom: 20px;
+table th {
+  background-color: var(--color-primary);
+  color: var(--color-secondary);
 }
 
-table {
-  border-collapse: collapse;
+table tr:nth-child(even) td {
+  background-color: #f9f9f9;
 }
 
 th,
 td {
-  border: 1px solid #999;
-  padding: 4px 8px;
+  border: 1px solid #DDD;
+  padding: 6px 10px;
   text-align: center;
+  font-size: 0.9rem;
 }
 
 #romTable td,
 #memoryTable td {
   width: 30px;
-}
-
-#output {
-  display: inline-block;
-  min-width: 200px;
-  background: #f7f7f7;
-  padding: 4px;
-}
-
-#terminal {
-  font-family: monospace;
-  background-color: #1e1e1e;
-  color: #fff;
-  padding: 10px;
-  margin: 10px 0;
-  height: 300px;
-  overflow-y: auto;
-  border-radius: 4px;
-}
-
-#terminal .instruction {
-  color: #4ec9b0;
-}
-
-#terminal .input {
-  color: #569cd6;
-}
-
-#terminal .output {
-  color: #ce9178;
-}
-
-#io {
-  margin: 10px 0;
-}
-
-#inputField {
-  padding: 4px;
-  margin-right: 5px;
-}
-
-#inputField:disabled {
-  background-color: #f0f0f0;
-  cursor: not-allowed;
-}
-
-#inputBtn:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
+  font-size: 0.75rem;
 }
 
 #programView {
   list-style: decimal inside;
   font-family: monospace;
-  background-color: #f0f0f0;
+  background-color: #EDEDED;
   padding: 10px;
-  margin: 10px 0;
+  margin: 0;
   height: 150px;
   overflow-y: auto;
+  border-radius: var(--border-radius);
+}
+
+#programView li:hover {
+  background-color: #ddd;
 }
 
 #programView .current {
-  background-color: #ffeb3b;
-  color: #000;
+  background-color: #FFF176;
+}
+
+#terminal {
+  font-family: monospace;
+  background-color: #1E1E1E;
+  color: #FFF;
+  padding: 10px;
+  margin: 10px 0;
+  height: 300px;
+  overflow-y: auto;
+  border-radius: var(--border-radius);
+}
+
+#terminal .instruction {
+  color: #4EC9B0;
+}
+
+#terminal .input {
+  color: #569CD6;
+}
+
+#terminal .output {
+  color: #CE9178;
+}
+
+#io {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+#inputField:disabled,
+#inputBtn:disabled {
+  opacity: 0.6;
+}
+
+@media (max-width: 600px) {
+  #programView,
+  #terminal {
+    height: 200px;
+  }
+}
+
+#memory-row {
+  grid-template-columns: repeat(auto-fit, minmax(575px, 1fr));
 }

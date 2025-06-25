@@ -22,10 +22,6 @@ const OPCODES = {
   ZERA: 0x14,
   LE_INDIRETO: 0x15,
   ES_INDIRETO: 0x16,
-  EMPILHA: 0x17,
-  DESEMPILHA: 0x18,
-  CHAMA: 0x19,
-  RETORNA: 0x1a,
   SALTA_C: 0x1b,
 };
 
@@ -413,39 +409,6 @@ function step() {
         `Escrita indireta: ${getInstructionText(op, [o1, o2])}`,
         "instruction",
       );
-      break;
-    case 0x17: // EMPILHA
-      d = rom[regs.pc++];
-      regs.sp--;
-      memory[regs.sp] = regs[regsMap[d]]; // Stack operations use RAM
-      appendToTerminal(
-        `Empilhando: ${getInstructionText(op, [d])}`,
-        "instruction",
-      );
-      break;
-    case 0x18: // DESEMPILHA
-      d = rom[regs.pc++];
-      regs[regsMap[d]] = memory[regs.sp]; // Stack operations use RAM
-      regs.sp++;
-      appendToTerminal(
-        `Desempilhando: ${getInstructionText(op, [d])}`,
-        "instruction",
-      );
-      break;
-    case 0x19: // CHAMA
-      o1 = rom[regs.pc++];
-      regs.sp--;
-      memory[regs.sp] = regs.pc; // Store return address in RAM stack
-      regs.pc = o1;
-      appendToTerminal(
-        `Chamada de subrotina: ${getInstructionText(op, [o1])}`,
-        "instruction",
-      );
-      break;
-    case 0x1a: // RETORNA
-      regs.pc = memory[regs.sp]; // Get return address from RAM stack
-      regs.sp++;
-      appendToTerminal(`Retorno de subrotina`, "instruction");
       break;
     default:
       running = false;

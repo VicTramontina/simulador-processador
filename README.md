@@ -57,10 +57,6 @@ I/O. O usuário pode:
 | ZERA         | 0x14   | Dest            | Dest := 0 (Z=1)                                              |
 | LE\_INDIRETO | 0x15   | Dest, Raddr     | Dest := Mem[ Raddr ]                                         |
 | ES\_INDIRETO | 0x16   | Orig, Raddr     | Mem[ Raddr ] := Orig                                         |
-| EMPILHA      | 0x17   | Orig            | Empilha valor de Orig na pilha (decrementa SP e grava valor) |
-| DESEMPILHA   | 0x18   | Dest            | Desempilha valor da pilha para Dest (incrementa SP)          |
-| CHAMA        | 0x19   | Addr            | Empilha PC na pilha e salta para Addr (chamada de subrotina) |
-| RETORNA      | 0x1A   | —               | Desempilha endereço de retorno para PC                       |
 
 ---
 
