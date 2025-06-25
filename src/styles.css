@@ -18,7 +18,7 @@ body {
   grid-template-columns: 1fr;
 }
 
-#bottom-row {
+#memory-row {
   grid-template-columns: 1fr;
 }
 
@@ -26,8 +26,8 @@ body {
   #top-row {
     grid-template-columns: 1fr 1fr;
   }
-  #bottom-row {
-    grid-template-columns: repeat(3, 1fr);
+  #memory-row {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -44,6 +44,21 @@ body {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+#controls {
+  display: flex;
+  flex-direction: column;
+}
+
+#controls textarea {
+  flex-grow: 1;
+}
+
+#program-area {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 textarea,
 input {
   font-family: monospace;
@@ -52,7 +67,6 @@ input {
 
 #controls,
 #io,
-#registers,
 #memory,
 #rom {
   margin-bottom: 20px;

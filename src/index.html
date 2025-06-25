@@ -23,7 +23,34 @@
           <button id="runBtn" disabled>Executar</button>
           <button id="resetBtn" disabled>Resetar</button>
         </div>
-        <ol id="programView" class="box program-list"></ol>
+        <div id="program-area" class="grid-col">
+          <ol id="programView" class="box program-list"></ol>
+          <div id="registers" class="box">
+            <h2>Registradores</h2>
+            <table>
+              <tr>
+                <th>R0</th>
+                <th>R1</th>
+                <th>R2</th>
+                <th>R3</th>
+                <th>PC</th>
+                <th>SP</th>
+                <th>Z</th>
+                <th>C</th>
+              </tr>
+              <tr>
+                <td id="r0">0</td>
+                <td id="r1">0</td>
+                <td id="r2">0</td>
+                <td id="r3">0</td>
+                <td id="pc">0</td>
+                <td id="sp">0</td>
+                <td id="flagZ">0</td>
+                <td id="flagC">0</td>
+              </tr>
+            </table>
+          </div>
+        </div>
       </div>
 
       <div id="terminal" class="box"></div>
@@ -38,32 +65,7 @@
         />
         <button id="inputBtn" disabled>Enviar</button>
       </div>
-      <div id="bottom-row" class="grid">
-        <div id="registers" class="box">
-          <h2>Registradores</h2>
-          <table>
-            <tr>
-              <th>R0</th>
-              <th>R1</th>
-              <th>R2</th>
-              <th>R3</th>
-              <th>PC</th>
-              <th>SP</th>
-              <th>Z</th>
-              <th>C</th>
-            </tr>
-            <tr>
-              <td id="r0">0</td>
-              <td id="r1">0</td>
-              <td id="r2">0</td>
-              <td id="r3">0</td>
-              <td id="pc">0</td>
-              <td id="sp">0</td>
-              <td id="flagZ">0</td>
-              <td id="flagC">0</td>
-            </tr>
-          </table>
-        </div>
+      <div id="memory-row" class="grid">
         <div id="rom" class="box">
           <h2>ROM (256 bytes - Program)</h2>
           <table id="romTable"></table>
