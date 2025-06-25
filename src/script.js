@@ -353,7 +353,7 @@ function step() {
       break;
     case 0x11: // INC
       d = rom[regs.pc++]; // Fix: fetch from ROM
-      regs[regsMap[d]] = (regs[regsMap[d]] + 1) & 0xff;
+      regs[regsMap[d]] = (regs[regsMap[d]] + 1) & 0xff; // and com 255, se overflow, fica 0
       flags.Z = regs[regsMap[d]] === 0 ? 1 : 0;
       flags.C = regs[regsMap[d]] === 0 ? 1 : 0;
       appendToTerminal(
