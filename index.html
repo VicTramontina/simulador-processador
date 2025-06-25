@@ -138,7 +138,8 @@
         'OU_BIT': 0x0A, 'NAO_BIT': 0x0B, 'SALTA': 0x0C, 'SALTA_Z': 0x0D, 'SALTA_NZ': 0x0E,
         'ENTRADA': 0x0F, 'SAIDA': 0x10, 'INC': 0x11, 'DEC': 0x12, 'MAIOR': 0x13, 'ZERA': 0x14,
         'LE_INDIRETO': 0x15, 'ES_INDIRETO': 0x16,
-        'EMPILHA': 0x17, 'DESEMPILHA': 0x18, 'CHAMA': 0x19, 'RETORNA': 0x1A
+        'EMPILHA': 0x17, 'DESEMPILHA': 0x18, 'CHAMA': 0x19, 'RETORNA': 0x1A,
+        'SALTA_C': 0x1B
     };
 
     let memory = new Uint8Array(256); // RAM
@@ -357,6 +358,11 @@
                 o1 = rom[regs.pc++];  // Fix: fetch from ROM
                 if (!flags.Z) regs.pc = o1;
                 appendToTerminal(`Salto Condicional NZ: ${getInstructionText(op, [o1])}`, 'instruction');
+                break;
+            case 0x1B: // SALTA_C
+                o1 = rom[regs.pc++];
+                if (flags.C) regs.pc = o1;
+                appendToTerminal(`Salto Condicional C: ${getInstructionText(op, [o1])}`, 'instruction');
                 break;
             case 0x0F: // ENTRADA
                 d = rom[regs.pc++];  // Fix: fetch from ROM
