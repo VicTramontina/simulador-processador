@@ -1,75 +1,97 @@
 body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
+  font-family: Arial, sans-serif;
+  margin: 20px;
+}
 
-        textarea, input {
-            font-family: monospace;
-        }
+textarea,
+input {
+  font-family: monospace;
+}
 
-        #controls, #io, #registers, #memory, #rom {
-            margin-bottom: 20px;
-        }
+#controls,
+#io,
+#registers,
+#memory,
+#rom {
+  margin-bottom: 20px;
+}
 
-        table {
-            border-collapse: collapse;
-        }
+table {
+  border-collapse: collapse;
+}
 
-        th, td {
-            border: 1px solid #999;
-            padding: 4px 8px;
-            text-align: center;
-        }
+th,
+td {
+  border: 1px solid #999;
+  padding: 4px 8px;
+  text-align: center;
+}
 
-        #romTable td, #memoryTable td {
-            width: 30px;
-        }
+#romTable td,
+#memoryTable td {
+  width: 30px;
+}
 
-        #output {
-            display: inline-block;
-            min-width: 200px;
-            background: #f7f7f7;
-            padding: 4px;
-        }
+#output {
+  display: inline-block;
+  min-width: 200px;
+  background: #f7f7f7;
+  padding: 4px;
+}
 
-        #terminal {
-            font-family: monospace;
-            background-color: #1e1e1e;
-            color: #fff;
-            padding: 10px;
-            margin: 10px 0;
-            height: 300px;
-            overflow-y: auto;
-            border-radius: 4px;
-        }
+#terminal {
+  font-family: monospace;
+  background-color: #1e1e1e;
+  color: #fff;
+  padding: 10px;
+  margin: 10px 0;
+  height: 300px;
+  overflow-y: auto;
+  border-radius: 4px;
+}
 
-        #terminal .instruction {
-            color: #4ec9b0;
-        }
+#terminal .instruction {
+  color: #4ec9b0;
+}
 
-        #terminal .input {
-            color: #569cd6;
-        }
+#terminal .input {
+  color: #569cd6;
+}
 
-        #terminal .output {
-            color: #ce9178;
-        }
+#terminal .output {
+  color: #ce9178;
+}
 
-        #io {
-            margin: 10px 0;
-        }
+#io {
+  margin: 10px 0;
+}
 
-        #inputField {
-            padding: 4px;
-            margin-right: 5px;
-        }
+#inputField {
+  padding: 4px;
+  margin-right: 5px;
+}
 
-        #inputField:disabled {
-            background-color: #f0f0f0;
-            cursor: not-allowed;
-        }
+#inputField:disabled {
+  background-color: #f0f0f0;
+  cursor: not-allowed;
+}
 
-        #inputBtn:disabled {
-            cursor: not-allowed;
-            opacity: 0.6;
+#inputBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+#programView {
+  font-family: monospace;
+  background-color: #f0f0f0;
+  padding: 10px;
+  margin: 10px 0;
+  white-space: pre;
+  height: 150px;
+  overflow-y: auto;
+}
+
+#programView .current {
+  background-color: #333;
+  color: #fff;
 }
