@@ -1,56 +1,53 @@
 ; Ex05 - Solicitar números até o usuário enviar um input vazio, imprimir em ordem crescente (bubble sort)
 START:
-  ZERA R2
+  ZERA R3            ; R3 = index
 READ_LOOP:
-  ENTRADA R0
-  CAR_IMD R1,0
-  SUBTRAI R0,R1
-  SALTA_Z SORT
-  CAR_IMD R1,48
-  SUBTRAI R0,R1
-  ES_INDIRETO R0,R2
-  INC R2
-  SALTA READ_LOOP
-SORT:
-  EMPILHA R2       ; guarda N
-  DEC R2           ; passes = N-1
-OUTER_LOOP:
-  ZERA R0          ; j = 0
-INNER_LOOP:
-  COPIA R1,R0
-  SUBTRAI R1,R2    ; j - passes
-  SALTA_C COMPARE
-  SALTA NEXT_PASS
-COMPARE:
-  LE_INDIRETO R1,R0
-  EMPILHA R1
-  INC R0
-  LE_INDIRETO R1,R0
-  DESEMPILHA R3
-  SUBTRAI R3,R1
-  SALTA_C NOSWAP
-  DEC R0
-  ES_INDIRETO R1,R0
-  INC R0
-  ES_INDIRETO R3,R0
-  DEC R0
-NOSWAP:
-  INC R0
-  SALTA INNER_LOOP
-NEXT_PASS:
-  DEC R2
-  SALTA_NZ OUTER_LOOP
-  DESEMPILHA R2    ; restaura N
+  ENTRADA R0         ; lê caractere ASCII
+  CAR_IMD R1,48      ; '0' ASCII
+  SUBTRAI R0,R1      ; converte para valor
+  ES_INDIRETO R0,R3  ; armazena em RAM[R3]
+  INC R3             ; R3++
+  CAR_IMD R1,0       ; 0
+  SUBTRAI R0,R1      ; Z se valor==0
+  SALTA_NZ READ_LOOP ; repetir até 0
+
+  DEC R3             ; R3 = count
+  DEC R3             ; R3 = bound (count-1)
+  SALTA_Z PRINT      ; se só 1 elemento, pular sort
+
+OUTER:
+  ZERA R0            ; R0 = index i
+INNER:
+  COPIA R1,R0        ; R1 = i
+  SUBTRAI R1,R3      ; se i == bound, fim inner
+  SALTA_Z END_INNER
+  LE_INDIRETO R1,R0  ; R1 = mem[i]
+  CAR_IMD R2,1       ; constante 1
+  SOMA R0,R2         ; R0 = i+1
+  LE_INDIRETO R2,R0  ; R2 = mem[i+1]
+  SUBTRAI R1,R2      ; comparar R1-R2
+  SALTA_C SKIP_SWAP  ; se R1<R2, pular swap
+    ES_INDIRETO R1,R0 ; mem[i+1] = R1
+    DEC R0            ; R0 = i
+    ES_INDIRETO R2,R0 ; mem[i] = R2
+    INC R0            ; restaurar R0 = i+1
+SKIP_SWAP:
+  SALTA INNER
+END_INNER:
+  DEC R3             ; R3-- outer bound
+  SALTA_NZ OUTER
+
 PRINT:
-  ZERA R0
-  CAR_IMD R3,48
+  ZERA R0            ; R0 = index i
 PRINT_LOOP:
-  LE_INDIRETO R1,R0
-  SOMA R1,R3
-  SAIDA R1
-  INC R0
-  COPIA R1,R0
-  SUBTRAI R1,R2
-  SALTA_NZ PRINT_LOOP
+  LE_INDIRETO R1,R0  ; R1 = mem[i]
+  CAR_IMD R2,0       ; 0
+  SUBTRAI R1,R2      ; Z se mem[i]==0
+  SALTA_Z END        ; fim ao encontrar sentinel
+  CAR_IMD R2,48      ; '0' ASCII
+  SOMA R1,R2         ; converte para ASCII
+  SAIDA R1           ; imprime
+  INC R0             ; i++
+  SALTA PRINT_LOOP
 END:
-  NADA
+  NADA               ; fim
