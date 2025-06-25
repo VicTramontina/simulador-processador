@@ -85,10 +85,10 @@ function renderProgram() {
   const pv = document.getElementById("programView");
   pv.innerHTML = "";
   programLines.forEach((line, idx) => {
-    const div = document.createElement("div");
-    div.textContent = line;
-    div.id = "progLine" + idx;
-    pv.appendChild(div);
+    const li = document.createElement("li");
+    li.textContent = line;
+    li.id = "progLine" + idx;
+    pv.appendChild(li);
   });
 }
 

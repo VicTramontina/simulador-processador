@@ -31,6 +31,12 @@ body {
   }
 }
 
+@media (min-width: 1024px) {
+  #top-row {
+    grid-template-columns: 1fr 2fr;
+  }
+}
+
 .box {
   background: #fff;
   padding: 10px;
@@ -118,16 +124,16 @@ td {
 }
 
 #programView {
+  list-style: decimal inside;
   font-family: monospace;
   background-color: #f0f0f0;
   padding: 10px;
   margin: 10px 0;
-  white-space: pre;
   height: 150px;
   overflow-y: auto;
 }
 
 #programView .current {
-  background-color: #ffd54f;
+  background-color: #ffeb3b;
   color: #000;
 }
