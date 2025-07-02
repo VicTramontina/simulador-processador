@@ -1,17 +1,21 @@
 ; Ex04 - Solicitar dez números e imprimir o maior na tela
 START:
-  ZERA R2            ; Zera R2 para armazenar o maior valor inicial (0)
-  CAR_IMD R1,10      ; Carrega o contador de entradas (10) em R1
+  ZERA R2            ; Armazena o maior valor (inicia em 0)
+  CAR_IMD R1,10      ; Contador de entradas
 LOOP_READ:
-  ENTRADA R0         ; Lê um número em ASCII do usuário para R0
-  CAR_IMD R3,48      ; Carrega ASCII '0' em R3 para conversão
-  SUBTRAI R0,R3      ; Converte R0 de ASCII para valor numérico
-  MAIOR R2,R2,R0     ; Atualiza R2 com o maior entre R2 (atual) e R0
-  DEC R1             ; Decrementa o contador de entradas
-  SALTA_NZ LOOP_READ ; Se ainda não leu 10, volta para ler o próximo
-
-  ; Impressão do maior valor
-  CAR_IMD R3,48      ; Carrega ASCII '0' em R3 para reconversão
-  SOMA R2,R3         ; Converte R2 de valor numérico para ASCII
-  SAIDA R2           ; Exibe o maior número em ASCII
+  ENTRADA R0         ; Lê um número em ASCII
+  CAR_IMD R3,48      ; '0' para conversão
+  SUBTRAI R0,R3      ; Converte para valor numérico
+  COPIA R3,R2        ; R3 = maior atual
+  SUBTRAI R3,R0      ; Compara maior atual com novo valor
+  SALTA_C UPDATE_MAX ; Se R2 < R0, atualiza maior
+  SALTA AFTER_UPDATE ; Caso contrário, segue
+UPDATE_MAX:
+  COPIA R2,R0        ; R2 recebe o novo maior
+AFTER_UPDATE:
+  DEC R1             ; Decrementa o contador
+  SALTA_NZ LOOP_READ ; Continua até ler 10 números
+  CAR_IMD R3,48      ; Reconversão para ASCII
+  SOMA R2,R3         ; Converte maior para ASCII
+  SAIDA R2           ; Exibe o maior número
   NADA               ; Finaliza o programa
