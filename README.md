@@ -53,7 +53,6 @@ I/O. O usuário pode:
 | SAIDA        | 0x10   | Orig            | Escreve byte de Orig no output ASCII                         |
 | INC          | 0x11   | Dest            | Incrementa Dest (Z e C)                                      |
 | DEC          | 0x12   | Dest            | Decrementa Dest (Z e C)                                      |
-| MAIOR        | 0x13   | Dest, R1, R2    | Dest := max(R1, R2) (Z se zero)                              |
 | ZERA         | 0x14   | Dest            | Dest := 0 (Z=1)                                              |
 | LE\_INDIRETO | 0x15   | Dest, Raddr     | Dest := Mem[ Raddr ]                                         |
 | ES\_INDIRETO | 0x16   | Orig, Raddr     | Mem[ Raddr ] := Orig                                         |
