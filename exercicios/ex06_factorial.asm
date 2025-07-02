@@ -1,64 +1,92 @@
 ; Ex06 - Solicitar um número e imprimir o seu fatorial
 START:
-  ENTRADA R0           ; Lê número ASCII do usuário para R0
-  CAR_IMD R1,48        ; Carrega ASCII '0' em R1 para conversão
-  SUBTRAI R0,R1        ; Converte ASCII para valor numérico
+  ENTRADA R0           ; lê número ASCII
+  CAR_IMD R1,48        ; '0'
+  SUBTRAI R0,R1        ; converte ASCII para valor numérico
 
-  ; Inicializar resultado do fatorial em R2
-  CAR_IMD R2,1         ; R2 = 1 (resultado inicial)
+  ; Inicializar resultado do fatorial
+  CAR_IMD R2,1         ; resultado inicial = 1
 
   ; Caso especial: fatorial de 0 = 1
-  COPIA R3,R0          ; Copia n para R3
-  SALTA_Z PRINT_RESULT ; Se n == 0, pula para impressão do resultado
+  COPIA R3,R0          ; copia a entrada para R3
+  SALTA_Z PRINT_RESULT ; se entrada é 0, pula direto para impressão (já temos 1 em R2)
 
 FACT_LOOP:
-  MULTIPLICA R2,R0     ; R2 = R2 * n
-  DEC R0               ; n = n - 1
-  SALTA_Z PRINT_RESULT ; Se n == 0, fim do loop
-  SALTA FACT_LOOP      ; Continua calculando
+  MULTIPLICA R2,R0     ; resultado *= n
+  DEC R0               ; n--
+  SALTA_Z PRINT_RESULT ; se chegou a zero, vai para impressão
+  SALTA FACT_LOOP      ; senão, continua no loop
 
 PRINT_RESULT:
-  ; R2 contém o valor do fatorial
+  ; Agora temos o fatorial em R2 (já calculado)
 
-  ; Verificar e imprimir centena (>=100)
-  CAR_IMD R3,100       ; Carrega 100 em R3
-  COPIA R1,R2          ; Copia resultado para R1
-  SUBTRAI R1,R3        ; R1 = R2 - 100
-  SALTA_C SKIP_HUNDRED ; Se R2 < 100, pula centenas
-  COPIA R1,R2          ; R1 = R2
-  DIVIDE R1,R3         ; R1 = dígito da centena
-  CAR_IMD R3,48        ; '0' ASCII
-  SOMA R1,R3           ; Converte para ASCII
-  SAIDA R1             ; Imprime dígito da centena
-  ; Atualiza resto
+  ; Caso especial: imprimir 1 (fatorial de 0 ou 1)
+  CAR_IMD R3,1
+  COPIA R1,R2          ; Preserva o valor de R2
+  SUBTRAI R1,R3        ; se R2 == 1, então R1 = 0
+  SALTA_NZ CHECK_HUNDREDS
+
+  ; Imprime apenas '1'
+  CAR_IMD R0,49        ; '1' em ASCII
+  SAIDA R0
+  SALTA PROGRAM_END
+
+CHECK_HUNDREDS:
+  ; Verifica se temos centenas (>= 100)
   CAR_IMD R3,100
-  MULTIPLICA R1,R3     ; R1 = centena * 100
-  COPIA R1,R2
-  SUBTRAI R2,R1        ; R2 = resto após remover centenas
-SKIP_HUNDRED:
+  COPIA R1,R2          ; Copia o valor do fatorial para R1
+  SUBTRAI R1,R3        ; Subtrai 100 para verificação
+  SALTA_C PRINT_TENS   ; Se menor que 100, vai para dezenas
 
-  ; Verificar e imprimir dezena (>=10)
-  CAR_IMD R3,10        ; Carrega 10 em R3
+  ; Temos centenas, imprime o dígito da centena
+  CAR_IMD R3,100
   COPIA R1,R2
-  SUBTRAI R1,R3        ; R1 = R2 - 10
-  SALTA_C SKIP_TEN     ; Se R2 < 10, pula dezenas
-  COPIA R1,R2          ; R1 = R2
-  DIVIDE R1,R3         ; R1 = dígito da dezena
-  CAR_IMD R3,48        ; '0' ASCII
-  SOMA R1,R3           ; Converte para ASCII
-  SAIDA R1             ; Imprime dígito da dezena
-  ; Atualiza resto
+  DIVIDE R1,R3         ; R1 = R2/100 (dígito da centena)
+  CAR_IMD R3,48
+  SOMA R1,R3           ; converte para ASCII
+  SAIDA R1             ; imprime dígito da centena
+
+  ; Calcula resto após remover centenas
+  COPIA R3,R1
+  CAR_IMD R1,48
+  SUBTRAI R3,R1        ; Recupera o valor numérico do dígito da centena
+  CAR_IMD R1,100
+  MULTIPLICA R3,R1     ; R3 = dígito da centena * 100
+  COPIA R1,R2
+  SUBTRAI R1,R3        ; R1 = valor original - centenas
+  COPIA R2,R1          ; Guarda o resto em R2
+
+PRINT_TENS:
+  ; Verifica se temos dezenas (>= 10)
   CAR_IMD R3,10
-  MULTIPLICA R1,R3     ; R1 = dezena * 10
   COPIA R1,R2
-  SUBTRAI R2,R1        ; R2 = resto após remover dezenas
-SKIP_TEN:
+  SUBTRAI R1,R3
+  SALTA_C PRINT_ONES   ; menor que 10, vai para unidades
 
-  ; Imprimir unidade
-  CAR_IMD R3,48        ; '0' ASCII
-  COPIA R1,R2          ; R1 = resto (0-9)
-  SOMA R1,R3           ; Converte para ASCII
-  SAIDA R1             ; Imprime dígito da unidade
+  ; Temos dezenas, imprime o dígito da dezena
+  CAR_IMD R3,10
+  COPIA R1,R2
+  DIVIDE R1,R3         ; R1 = R2/10 (dígito da dezena)
+  CAR_IMD R3,48
+  SOMA R1,R3           ; converte para ASCII
+  SAIDA R1             ; imprime dígito da dezena
+
+  ; Calcula resto após remover dezenas
+  COPIA R3,R1
+  CAR_IMD R1,48
+  SUBTRAI R3,R1        ; Recupera o valor numérico do dígito da dezena
+  CAR_IMD R1,10
+  MULTIPLICA R3,R1     ; R3 = dígito da dezena * 10
+  COPIA R1,R2
+  SUBTRAI R1,R3        ; R1 = valor após centenas - dezenas
+  COPIA R2,R1          ; Guarda o resto em R2
+
+PRINT_ONES:
+  ; Imprime o dígito da unidade
+  CAR_IMD R3,48
+  COPIA R1,R2
+  SOMA R1,R3           ; converte para ASCII
+  SAIDA R1             ; imprime dígito da unidade
 
 PROGRAM_END:
-  NADA                 ; Finaliza o programa
+  NADA                 ; finaliza o programa
