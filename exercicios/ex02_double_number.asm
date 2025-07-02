@@ -1,11 +1,11 @@
 ; Ex02 - Solicitar um número e imprimir o dobro na tela
 START:
-  ENTRADA R0         ; lê caracter ASCII em R0
-  CAR_IMD R1,48      ; ASCII '0'
-  SUBTRAI R0,R1      ; converte para valor (0-9)
-  COPIA R2,R0        ; R2 = valor
-  SOMA R0,R2         ; R0 = valor * 2
-  CAR_IMD R1,48      ; ASCII '0'
-  SOMA R0,R1         ; converte de volta para ASCII
-  SAIDA R0           ; imprime dobro
-  NADA               ; fim
+  ENTRADA R0         ; Lê um caracter ASCII (dígito de 0 a 9) em R0
+  CAR_IMD R1,48      ; Carrega ASCII '0' em R1 para conversão
+  SUBTRAI R0,R1      ; Converte ASCII para valor numérico (0-9)
+  COPIA R2,R0        ; Armazena o valor original em R2
+  SOMA R0,R2         ; Calcula dobro: R0 = valor + valor
+  CAR_IMD R1,48      ; Carrega ASCII '0' em R1 para reconversão
+  SOMA R0,R1         ; Converte o resultado de volta para ASCII
+  SAIDA R0           ; Imprime o caracter resultante (ASCII)
+  NADA               ; Finaliza o programa

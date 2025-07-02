@@ -6,8 +6,10 @@
   <component name="ChangeListManager">
     <list default="true" id="8f59ef4a-8317-4c3c-a316-240cc7e06d9a" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/exercicios/ex05_bubble_sort.asm" beforeDir="false" afterPath="$PROJECT_DIR$/exercicios/ex05_bubble_sort.asm" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/script.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/script.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/exercicios/ex01_print_number.asm" beforeDir="false" afterPath="$PROJECT_DIR$/exercicios/ex01_print_number.asm" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/exercicios/ex02_double_number.asm" beforeDir="false" afterPath="$PROJECT_DIR$/exercicios/ex02_double_number.asm" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/exercicios/ex03_max3.asm" beforeDir="false" afterPath="$PROJECT_DIR$/exercicios/ex03_max3.asm" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/exercicios/ex04_max10.asm" beforeDir="false" afterPath="$PROJECT_DIR$/exercicios/ex04_max10.asm" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -57,6 +59,14 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-fbdcb00ec9e3-intellij.indexing.shared.core-IU-251.25410.129" />
+        <option value="bundled-js-predefined-d6986cc7102b-6a121458b545-JavaScript-IU-251.25410.129" />
+      </set>
+    </attachedChunks>
+  </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="8f59ef4a-8317-4c3c-a316-240cc7e06d9a" name="Changes" comment="" />
@@ -72,6 +82,7 @@
       <workItem from="1750617240906" duration="20000" />
       <workItem from="1750617275305" duration="1522000" />
       <workItem from="1750890887978" duration="3314000" />
+      <workItem from="1751480365681" duration="1220000" />
     </task>
     <task id="LOCAL-00001" summary="fix">
       <option name="closed" value="true" />
